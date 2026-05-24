@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Test coverage output
+coverage
+
+# Vercel CLI local link/build artifacts
+.vercel
+
 # gstack runtime artifacts
 .gstack/
 
