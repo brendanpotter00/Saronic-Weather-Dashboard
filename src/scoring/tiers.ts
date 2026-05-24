@@ -1,6 +1,6 @@
 // The severity-tier machinery: how a single reading becomes a tier, how tiers map to/from the
 // public Status, and how a set of tiers combines (worst wins). This changes when the BANDING
-// logic changes — separate from the threshold numbers (`thresholds.ts`) and the public
+// logic changes — separate from the threshold numbers (`weatherThresholds.ts`) and the public
 // vocabulary (`status.ts`).
 
 import { Status } from './status';
@@ -11,7 +11,7 @@ import {
   WAVE_CAUTION_FT,
   VISIBILITY_NOGO_MILES,
   VISIBILITY_GO_MILES,
-} from './thresholds';
+} from './weatherThresholds';
 
 // Internal severity scale: worst-factor-wins is a max over these tiers. Kept numeric (not the
 // string Status) so ordering is a plain `>` comparison.

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WindowControls — daylight + candidate-count restyle</title>
+<style>
+  /* ----- Tokens mirror src/theme/theme.ts (light, near-monochrome + status) ----- */
+  :root{
+    --canvas:#fafafa; --paper:#ffffff; --line:#e0e0e0;
+    --ink:#0a0a0a; --ink-2:#5c5c5c;
+    --go:#2e7d32; --cau:#ed6c02; --no:#c62828;
+    --unit:8px; --radius:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--canvas);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:56px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+
+  /* ----- Typography helpers (match variant= roles) ----- */
+  .overline{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .h1{font-size:1.9rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .caption{font-size:.75rem;color:var(--ink-2)}
+  .body2{font-size:.875rem;color:var(--ink-2)}
+
+  header.top{padding:28px 0 6px}
+  header.top .h1{margin-top:6px}
+  header.top .sub{color:var(--ink-2);font-size:.9rem;margin-top:8px;max-width:62ch}
+
+  .seclabel{margin:30px 0 10px;display:flex;align-items:center;gap:12px}
+  .seclabel::after{content:"";flex:1;height:1px;background:var(--line)}
+  .seclabel .tag{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px}
+  .tag.before{background:#f1eceb;color:#8a6d68}
+  .tag.after{background:#e7f0e8;color:var(--go)}
+
+  /* ----- Card (MuiCard outlined) ----- */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+
+  /* ----- Native selects styled like MUI outlined inputs ----- */
+  select{font-family:var(--font);font-size:.9rem;color:var(--ink);background:var(--paper);
+    border:1px solid var(--line);border-radius:var(--radius);padding:8px 30px 8px 12px;cursor:pointer;
+    appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235c5c5c' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+  select:focus{outline:none;border-color:var(--ink)}
+
+  .field{display:flex;flex-direction:column;gap:6px}
+  .winpair{display:flex;align-items:center;gap:8px}
+  .winpair .dash{color:var(--ink-2);font-weight:600}
+
+  /* ===== BEFORE — verbatim of the shipped WindowControls left column ===== */
+  .before-row{display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap}
+  .before .daylight-old{margin-top:6px}
+  .before .stat-old{margin-top:4px}
+  .before .stat-old b{color:var(--ink);font-weight:700}
+
+  /* ===== AFTER — daylight demoted to helper, count promoted to a result pill ===== */
+  .after-row{display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap}
+  /* daylight helper: subordinate to the pickers above it */
+  .daylight{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem;color:var(--ink-2)}
+  .daylight .branch{color:#b8b8b8}
+  .daylight .when{border-bottom:1px dotted #bdbdbd;cursor:help}
+
+  /* result pill — belongs to the whole bar, so it floats to the row end */
+  .pillwrap{margin-left:auto;align-self:center}
+  .pill{display:inline-flex;align-items:baseline;gap:6px;border-radius:999px;
+    padding:8px 16px;border:1px solid var(--line);white-space:nowrap;transition:.12s}
+  .pill.filled{background:#f4f4f4}
+  .pill .num{font-weight:700;color:var(--ink);font-size:1rem;font-variant-numeric:tabular-nums}
+  .pill .lbl{color:var(--ink-2);font-size:.85rem}
+
+  /* style toggle */
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--paper)}
+  .toggle button{font-family:var(--font);font-size:.78rem;font-weight:600;padding:7px 14px;border:none;
+    background:transparent;color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line);transition:.12s}
+  .toggle button:last-child{border-right:none}
+  .toggle button.on{background:var(--ink);color:#fff}
+  .toggle button:not(.on):hover{background:#f4f4f4;color:var(--ink)}
+  .togglerow{display:flex;align-items:center;gap:12px;margin:18px 0 6px}
+  .togglerow .overline{margin:0}
+
+  .footnote{margin-top:32px;font-size:.78rem;color:var(--ink-2);line-height:1.7;border-top:1px solid var(--line);padding-top:16px}
+  .footnote b{color:var(--ink);font-weight:600}
+
+  @media(max-width:560px){
+    .pillwrap{margin-left:0;align-self:stretch;width:100%}
+    .pill{justify-content:center;width:100%}
+    .before-row,.after-row{gap:18px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="overline">Gulf Test Range · Gulfport, MS · prototype</div>
+    <div class="h1">WindowControls — two statements, restyled</div>
+    <div class="sub">The daylight note becomes a quiet helper under the pickers; the candidate
+      count becomes a glanceable <b>result pill</b> at the end of the bar (it answers both knobs,
+      not just the window). Change the selects — the pill updates live.</div>
+  </header>
+
+  <!-- ===================== BEFORE ===================== -->
+  <div class="seclabel"><span class="tag before">Before</span></div>
+  <div class="card before">
+    <div class="before-row">
+      <div class="field">
+        <span class="overline">Available window</span>
+        <div class="winpair">
+          <select disabled><option>5 AM</option></select>
+          <span class="dash">–</span>
+          <select disabled><option>8 PM</option></select>
+        </div>
+        <div class="caption daylight-old">☀ Daylight 5:54 AM – 7:54 PM (earliest sunrise → latest sunset)</div>
+        <div class="body2 stat-old"><b>7</b> of 10 days have a valid window with these settings.</div>
+      </div>
+      <div class="field">
+        <span class="overline">Demo length</span>
+        <select disabled><option>6 hours</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== AFTER ===================== -->
+  <div class="seclabel"><span class="tag after">After</span></div>
+
+  <div class="togglerow">
+    <span class="overline">Pill style</span>
+    <div class="toggle" id="pillToggle">
+      <button data-style="outlined" class="on">Outlined</button>
+      <button data-style="filled">Filled</button>
+    </div>
+  </div>
+
+  <div class="card after" id="afterCard"></div>
+
+  <div class="footnote">
+    <b>Prototype</b> — light tokens mirror <b>src/theme/theme.ts</b>; the working count comes from the
+    same mock data + scoring used in <b>prototype-window-config.html</b>. The daylight value carries the
+    full <b>“earliest sunrise → latest sunset”</b> explanation in a hover tooltip instead of inline.
+    The pill stays <b>neutral</b> on purpose — green/amber/red is reserved for per-day status, so an
+    aggregate count never borrows that language. In the React port the pill becomes a styled
+    <b>Chip/Box</b> using theme tokens, with the full sentence as its <code>aria-label</code>.
+  </div>
+</div>
+
+<script>
+/* ---------- thresholds (mirror src/scoring/weatherThresholds.ts) ---------- */
+function windTier(kn){return kn>20?2:kn>=15?1:0;}
+function waveTier(ft){return ft>4?2:ft>=2?1:0;}
+function precipTier(mm){return mm>0.05?2:0;}
+function visTier(mi){return mi<3?2:mi<10?1:0;}
+function hourTier(x){return Math.max(windTier(x.wind),waveTier(x.wave),precipTier(x.precip),visTier(x.vis));}
+
+/* ---------- deterministic mock data ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const PROFILES=[
+  {windBase:9, windAdd:3, waveBase:1.3,waveAdd:.3,rain:false,vis:14},
+  {windBase:11,windAdd:3, waveBase:1.6,waveAdd:.4,rain:false,vis:14},
+  {windBase:16,windAdd:1, waveBase:1.6,waveAdd:.3,rain:false,vis:13},                       // wind sits caution
+  {windBase:12,windAdd:3, waveBase:4.3,waveAdd:.6,rain:false,vis:13},                       // wave no-go all day
+  {windBase:13,windAdd:2, waveBase:2.2,waveAdd:.5,rain:true,rprob:80,ramt:1.2,vis:8},       // rain all day
+  {windBase:10,windAdd:16,waveBase:1.4,waveAdd:1.0,rain:false,vis:14,ramp:true},            // AM clear, PM wind builds
+  {windBase:9, windAdd:2, waveBase:1.4,waveAdd:.3,rain:{from:6,to:10},rprob:78,ramt:.9,vis:14}, // AM rain clears
+  {windBase:10,windAdd:2, waveBase:1.5,waveAdd:.3,rain:false,vis:6},                        // low vis all day
+  {windBase:11,windAdd:2, waveBase:1.7,waveAdd:.4,rain:false,vis:13},
+  {windBase:9, windAdd:2.5,waveBase:1.4,waveAdd:.3,rain:false,vis:14}
+];
+const DAY_LO=5, DAY_HI=20; // generated daylight hours per day (inclusive)
+function genHours(p,seed){
+  const rng=mulberry32(seed),hours=[];
+  for(let h=DAY_LO;h<=DAY_HI;h++){
+    const ramp=p.ramp?Math.max(0,(h-11)/8):0;
+    const wind=Math.max(3,p.windBase+(p.windAdd||0)*ramp+(rng()*2-1)*1.4);
+    const wave=Math.max(.4,p.waveBase+(p.waveAdd||0)*ramp+(rng()*2-1)*.28);
+    let rains=false;
+    if(p.rain===true)rains=true;
+    else if(p.rain&&typeof p.rain==='object')rains=(h>=p.rain.from&&h<=p.rain.to);
+    const precip=rains?Math.max(0.1,(p.ramt||.9)*(.5+rng())):0;
+    const vis=Math.max(.5,Math.min(16,p.vis+(rng()*1.4-.7)));
+    hours.push({h,wind,wave,precip,vis});
+  }
+  return hours;
+}
+const DAYS=PROFILES.map((p,i)=>{
+  const sunrise=5.9+(i%3)*0.1;        // min 5.9 → 5:54 AM
+  const sunset=19.7+((i*7)%5)*0.05;   // max 19.9 → 7:54 PM
+  return {sunrise,sunset,hours:genHours(p,i*7919+13)};
+});
+
+/* default available window = floor(earliest sunrise) → ceil(latest sunset) */
+const DEFAULT_START=Math.floor(Math.min(...DAYS.map(d=>d.sunrise)));
+const DEFAULT_END=Math.ceil(Math.max(...DAYS.map(d=>d.sunset)));
+/* daylight envelope: the window may never extend past earliest sunrise / latest sunset */
+const ENVELOPE_SUNRISE=Math.min(...DAYS.map(d=>d.sunrise));
+const ENVELOPE_SUNSET=Math.max(...DAYS.map(d=>d.sunset));
+
+const STATE={startHour:DEFAULT_START,endHour:DEFAULT_END,demoLen:6,pillStyle:'outlined'};
+
+/* ---------- scoring with window + demo length ---------- */
+function bestTierInWindow(hours,startH,endH,demoLen){
+  const r=hours.filter(x=>x.h>=startH&&x.h<=endH).sort((a,b)=>a.h-b.h);
+  if(r.length<demoLen)return 2;
+  let best=2;
+  for(let i=0;i+demoLen-1<r.length;i++){
+    const block=r.slice(i,i+demoLen);
+    let contig=true;
+    for(let j=1;j<block.length;j++)if(block[j].h-block[j-1].h!==1){contig=false;break;}
+    if(!contig)continue;
+    const t=Math.max(...block.map(hourTier));
+    if(t<best)best=t;
+    if(best===0)break;
+  }
+  return best;
+}
+function candidateCount(){
+  return DAYS.filter(d=>bestTierInWindow(d.hours,STATE.startHour,STATE.endHour,STATE.demoLen)<2).length;
+}
+
+/* ---------- formatting ---------- */
+function fmtHour(h){const ap=h<12||h===24?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+' '+ap;}
+function fmtClock(dec){const h=Math.floor(dec);const m=Math.round((dec-h)*60);const ap=h<12?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+':'+String(m).padStart(2,'0')+' '+ap;}
+
+/* ---------- options clamp to the daylight envelope ---------- */
+function startOpts(){let o='';for(let h=DEFAULT_START;h<=STATE.endHour-1;h++)o+=`<option value="${h}" ${h===STATE.startHour?'selected':''}>${fmtHour(h)}</option>`;return o;}
+function endOpts(){let o='';for(let h=STATE.startHour+1;h<=DEFAULT_END;h++)o+=`<option value="${h}" ${h===STATE.endHour?'selected':''}>${fmtHour(h)}</option>`;return o;}
+function demoOpts(){let o='';for(let n=1;n<=12;n++)o+=`<option value="${n}" ${n===STATE.demoLen?'selected':''}>${n} ${n===1?'hour':'hours'}</option>`;return o;}
+
+/* ---------- render AFTER card ---------- */
+function renderAfter(){
+  const n=candidateCount();
+  const sentence=`${n} of 10 days have a valid window with these settings`;
+  const daylightTitle=`Earliest sunrise to latest sunset across the 10-day forecast — the window can’t run past it.`;
+  document.getElementById('afterCard').innerHTML=`
+    <div class="after-row">
+      <div class="field">
+        <span class="overline">Available window</span>
+        <div class="winpair">
+          <select onchange="setStart(+this.value)">${startOpts()}</select>
+          <span class="dash">–</span>
+          <select onchange="setEnd(+this.value)">${endOpts()}</select>
+        </div>
+        <div class="daylight">
+          <span class="branch">&#8627;</span>
+          <span>within daylight <span class="when" title="${daylightTitle}">${fmtClock(ENVELOPE_SUNRISE)} – ${fmtClock(ENVELOPE_SUNSET)}</span></span>
+        </div>
+      </div>
+      <div class="field">
+        <span class="overline">Demo length</span>
+        <select onchange="setDemo(+this.value)">${demoOpts()}</select>
+      </div>
+      <div class="pillwrap">
+        <span class="pill ${STATE.pillStyle==='filled'?'filled':''}" role="status" aria-label="${sentence}" title="${sentence}">
+          <span class="num">${n}/10</span><span class="lbl">days valid</span>
+        </span>
+      </div>
+    </div>`;
+}
+
+/* ---------- mutations ---------- */
+function setStart(v){STATE.startHour=Math.max(DEFAULT_START,Math.min(v,STATE.endHour-1));renderAfter();}
+function setEnd(v){STATE.endHour=Math.min(DEFAULT_END,Math.max(v,STATE.startHour+1));renderAfter();}
+function setDemo(v){STATE.demoLen=Math.max(1,v);renderAfter();}
+
+document.getElementById('pillToggle').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-style]');if(!b)return;
+  STATE.pillStyle=b.dataset.style;
+  [...document.querySelectorAll('#pillToggle button')].forEach(x=>x.classList.toggle('on',x===b));
+  renderAfter();
+});
+
+renderAfter();
+</script>
+</body>
+</html>

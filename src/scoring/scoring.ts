@@ -5,11 +5,19 @@
 // stays presentational: it never re-derives a threshold or computes a worst-of-N.
 //
 // The pieces this composes live in sibling files by reason-to-change: public vocabulary in
-// `status.ts`, threshold numbers in `thresholds.ts`, tier mechanics in `tiers.ts`. This file
+// `status.ts`, threshold numbers in `weatherThresholds.ts`, tier mechanics in `tiers.ts`. This file
 // owns only the enrichment shape and the window algorithm.
 
 import { DEMO_WINDOW_HOURS } from '../config/app';
 import type { CombinedForecast, CombinedHour, DayForecast } from '../model';
+import {
+  type AvailableWindow,
+  type DaylightEnvelope,
+  clampWindow,
+  daylightEnvelope,
+  defaultAvailableWindow,
+  isHourInWindow,
+} from './window';
 import { Status, Factor } from './status';
 import {
   type Tier,
@@ -39,6 +47,7 @@ export interface ScoredHour {
   status: Status; // worst of the 4 factors; an incomplete hour is always NoGo
   limitingFactors: Factor[]; // factor(s) that produced `status` ([] when GO)
   complete: boolean; // pass-through from CombinedHour
+  isInWindow: boolean; // inside the dashboard's available window — drives dimming AND the candidacy scan
 }
 
 export interface ScoredDay {
@@ -54,7 +63,19 @@ export interface ScoredForecast {
   marineSite: CombinedForecast['marineSite']; // pass-through: resolved marine cell (different grid — surfaced, not hidden)
   timezone: string; // pass-through
   marineAvailable: boolean; // pass-through -> drives the UI "wave data unavailable" banner
+  demoWindowHours: number; // effective demo length the scan used, echoed for the control
+  availableWindow: AvailableWindow; // the effective dashboard-wide window the scan used, echoed so the UI control reads it as data
+  daylightBounds: AvailableWindow; // widest daylight coverage — the hard min/max the window control clamps to (independent of the current window)
+  daylightEnvelope: DaylightEnvelope; // precise earliest sunrise / latest sunset, shown as the window control's context line
   days: ScoredDay[];
+}
+
+// Dashboard-wide knobs the scan honors. Both optional: omit them and scoring falls back to the
+// product defaults (DEMO_WINDOW_HOURS, widest daylight coverage), so callers/tests that don't
+// care about the window stay unchanged.
+export interface ScoringOptions {
+  demoWindowHours?: number; // contiguous in-window hours a demo needs
+  availableWindow?: AvailableWindow; // clock-hour band the candidacy scan is clipped to
 }
 
 // One clock-hour as an epoch-ms delta — the step between consecutive daylight hours.
@@ -70,7 +91,7 @@ function toScoredFactor(reading: FactorReading): ScoredFactor {
   return { status: TIER_TO_STATUS[reading.tier], value: reading.value };
 }
 
-export function scoreHour(hour: CombinedHour): ScoredHour {
+export function scoreHour(hour: CombinedHour, isInWindow = true): ScoredHour {
   const wind: FactorReading = { factor: Factor.Wind, tier: windTier(hour.windSpeedKn), value: hour.windSpeedKn };
   const wave: FactorReading = { factor: Factor.Wave, tier: waveTier(hour.waveHeightFt), value: hour.waveHeightFt };
   const precipitation: FactorReading = { factor: Factor.Precipitation, tier: precipitationTier(hour.precipitationIn), value: hour.precipitationIn };
@@ -94,14 +115,16 @@ export function scoreHour(hour: CombinedHour): ScoredHour {
     limitingFactors:
       tier === TIER_GO ? [] : readings.filter((reading) => reading.tier === tier).map((reading) => reading.factor),
     complete: hour.complete,
+    isInWindow,
   };
 }
 
-// Best status achievable by ANY contiguous demo-length daylight window — without naming the
-// window (choosing one is out of scope). Returns the lowest (best) tier over every valid
-// window, or NO-GO if no contiguous run of DEMO_WINDOW_HOURS exists.
-function bestAchievableTier(hours: ScoredHour[]): Tier {
-  if (hours.length < DEMO_WINDOW_HOURS) return TIER_NOGO;
+// Best status achievable by ANY contiguous demo-length window — without naming the window
+// (choosing one is out of scope). Returns the lowest (best) tier over every valid window, or
+// NO-GO if no contiguous run of `demoWindowHours` exists. Callers pass the in-window hours, so
+// "contiguous run" is automatically scoped to the available window.
+function bestAchievableTier(hours: ScoredHour[], demoWindowHours: number): Tier {
+  if (hours.length < demoWindowHours) return TIER_NOGO;
 
   // Offset-aware ISO timestamps parse to true instants, so consecutive clock-hours differ by
   // exactly ONE_HOUR_MS. A gap, a dropped hour, or a DST jump shows up as a non-1h step and
@@ -115,8 +138,8 @@ function bestAchievableTier(hours: ScoredHour[]): Tier {
     if (i > 0 && (!Number.isFinite(epochMs[i]) || epochMs[i] - epochMs[i - 1] !== ONE_HOUR_MS)) {
       runStart = i; // contiguity broke — start a fresh run here
     }
-    if (i - runStart + 1 >= DEMO_WINDOW_HOURS) {
-      const windowTier = worstTier(tiers.slice(i - DEMO_WINDOW_HOURS + 1, i + 1));
+    if (i - runStart + 1 >= demoWindowHours) {
+      const windowTier = worstTier(tiers.slice(i - demoWindowHours + 1, i + 1));
       if (windowTier < best) best = windowTier;
       if (best === TIER_GO) return TIER_GO; // nothing beats an all-clear window
     }
@@ -124,11 +147,21 @@ function bestAchievableTier(hours: ScoredHour[]): Tier {
   return best;
 }
 
-export function scoreDay(day: DayForecast): ScoredDay {
-  const hours = day.hours.map(scoreHour);
-  // An incomplete day (missing sunrise/sunset/duration, or no daylight hours) can't host a
-  // defensible window — short-circuit to NO-GO without scanning.
-  const badgeTier: Tier = day.complete ? bestAchievableTier(hours) : TIER_NOGO;
+export function scoreDay(
+  day: DayForecast,
+  demoWindowHours: number = DEMO_WINDOW_HOURS,
+  availableWindow?: AvailableWindow,
+): ScoredDay {
+  // Tag every hour in/out of the window (no window set → all in), keeping every hour for the
+  // drill-down. The UI dims the out-of-window ones; here they just don't count toward a window.
+  const hours = day.hours.map((hour) =>
+    scoreHour(hour, availableWindow ? isHourInWindow(hour.time, availableWindow) : true),
+  );
+  // The demo-length scan runs ONLY inside the available window: a day is a candidate only if a
+  // contiguous demo-length block fits within it. An incomplete day (missing metadata or no
+  // daylight hours) can't host a defensible window — short-circuit to NO-GO without scanning.
+  const scanHours = availableWindow ? hours.filter((hour) => hour.isInWindow) : hours;
+  const badgeTier: Tier = day.complete ? bestAchievableTier(scanHours, demoWindowHours) : TIER_NOGO;
   const badge = TIER_TO_STATUS[badgeTier];
   return {
     date: day.date,
@@ -139,12 +172,25 @@ export function scoreDay(day: DayForecast): ScoredDay {
   };
 }
 
-export function scoreForecast(forecast: CombinedForecast): ScoredForecast {
+export function scoreForecast(forecast: CombinedForecast, options: ScoringOptions = {}): ScoredForecast {
+  // Resolve the effective knobs once and thread them down: an explicit choice wins, otherwise
+  // the product defaults (and the widest-coverage window derived from the days' daylight).
+  const demoWindowHours = options.demoWindowHours ?? DEMO_WINDOW_HOURS;
+  const daylightBounds = defaultAvailableWindow(forecast.days);
+  // An explicit window is confined to the daylight bounds (a stored choice can outrun a refetch);
+  // with no explicit window we default to the full daylight coverage.
+  const availableWindow = options.availableWindow
+    ? clampWindow(options.availableWindow, daylightBounds)
+    : daylightBounds;
   return {
     site: forecast.site,
     marineSite: forecast.marineSite,
     timezone: forecast.timezone,
     marineAvailable: forecast.marineAvailable,
-    days: forecast.days.map(scoreDay),
+    demoWindowHours,
+    availableWindow,
+    daylightBounds,
+    daylightEnvelope: daylightEnvelope(forecast.days),
+    days: forecast.days.map((day) => scoreDay(day, demoWindowHours, availableWindow)),
   };
 }

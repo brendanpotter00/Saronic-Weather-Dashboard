@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scoreForecast, scoreDay, scoreHour } from './scoring';
+import { defaultAvailableWindow, daylightEnvelope } from './window';
 import { Status, Factor } from './status';
 import type { CombinedForecast, CombinedHour, DayForecast } from '../model';
 
@@ -197,5 +198,96 @@ describe('scoreForecast — whole-tree enrichment and marine-down fail-safe', ()
     expect(scored.marineSite).toBeNull(); // surfaced even when marine is down
     expect(scored.site).toEqual({ latitude: 30.37, longitude: -89.1 });
     expect(scored.days.every((d) => d.badge === Status.NoGo && !d.isCandidate)).toBe(true);
+  });
+});
+
+// The dashboard-wide knobs: the available window clips the candidacy scan, the demo length is
+// adjustable, and each hour is tagged in/out for dimming.
+describe('scoreForecast — available window + adjustable demo length', () => {
+  const window = (startHour: number, endHour: number) => ({ startHour, endHour });
+  function oneDay(hours: CombinedHour[]): CombinedForecast {
+    return {
+      site: { latitude: 30.37, longitude: -89.1 },
+      marineSite: { latitude: 30.29, longitude: -89.12 },
+      timezone: 'America/Chicago',
+      days: [mkDay(hours)],
+      marineAvailable: true,
+    };
+  }
+
+  it('tags each hour in/out of the window and echoes the window used', () => {
+    const scored = scoreForecast(oneDay(goHours(7, 8)), { availableWindow: window(9, 12) }); // 7..14
+    expect(scored.days[0].hours.map((h) => h.isInWindow)).toEqual([
+      false, false, true, true, true, true, false, false,
+    ]);
+    expect(scored.availableWindow).toEqual(window(9, 12));
+  });
+
+  it('a window too short for the demo length yields no candidate', () => {
+    // GO all day 7–18, but a 4-hour window (9–12) cannot hold a 6-hour block
+    const scored = scoreForecast(oneDay(goHours(7, 12)), { availableWindow: window(9, 12), demoWindowHours: 6 });
+    expect(scored.days[0].isCandidate).toBe(false);
+  });
+
+  it('a shorter demo length fits inside the same window', () => {
+    const scored = scoreForecast(oneDay(goHours(7, 12)), { availableWindow: window(9, 12), demoWindowHours: 4 });
+    expect(scored.days[0].badge).toBe(Status.Go);
+    expect(scored.days[0].isCandidate).toBe(true);
+  });
+
+  it('clipping to the window excludes an out-of-window bad patch', () => {
+    const hours = goHours(7, 12); // 7..18
+    hours[0] = mkHour(7, { waveHeightFt: 5 }); // 7:00 NO-GO, but outside a 9–18 window
+    const scored = scoreForecast(oneDay(hours), { availableWindow: window(9, 18), demoWindowHours: 6 });
+    expect(scored.days[0].badge).toBe(Status.Go);
+  });
+
+  it('confines an explicit window to the daylight bounds it is echoed against', () => {
+    // Only 9..12 of daylight exists (daylightBounds = {9, 12}); a window reaching past both ends
+    // is clamped, so the control never renders a Select value outside its own options.
+    const scored = scoreForecast(oneDay(goHours(9, 4)), { availableWindow: window(6, 20) });
+    expect(scored.availableWindow).toEqual(window(9, 12));
+  });
+});
+
+// defaultAvailableWindow spans the actual daylight HOURS present, so the picker never offers an
+// hour with no reading (a 5 AM before a 5:54 sunrise).
+describe('defaultAvailableWindow — the actual daylight-hour span across all days', () => {
+  it('spans the earliest first hour to the latest last hour across days', () => {
+    const days = [
+      mkDay(goHours(7, 6)), // 7..12
+      mkDay(goHours(6, 5)), // 6..10 → earliest hour 6
+      mkDay(goHours(9, 8)), // 9..16 → latest hour 16
+    ];
+    expect(defaultAvailableWindow(days)).toEqual({ startHour: 6, endHour: 16 });
+  });
+
+  it('tracks the hours present, not the rounded sun times (no phantom pre-sunrise hour)', () => {
+    // Sunrise is ~05:54, but the daylight hours the data layer kept run 06:00–19:00, so the
+    // window starts at 6 (never an empty 5 AM).
+    expect(defaultAvailableWindow([mkDay(goHours(6, 14))])).toEqual({ startHour: 6, endHour: 19 });
+  });
+
+  it('falls back to the full day when there are no hours', () => {
+    expect(defaultAvailableWindow([mkDay([], { complete: false })])).toEqual({ startHour: 0, endHour: 23 });
+  });
+});
+
+// daylightEnvelope reports the precise sun times (the context line), independent of the hour grid.
+describe('daylightEnvelope — earliest sunrise / latest sunset by clock time', () => {
+  it('picks the earliest sunrise and the latest sunset across days', () => {
+    const days = [
+      mkDay(goHours(7, 6), { sunriseTime: '2026-05-23T06:18:00-05:00', sunsetTime: '2026-05-23T19:42:00-05:00' }),
+      mkDay(goHours(7, 6), { sunriseTime: '2026-05-24T06:03:00-05:00', sunsetTime: '2026-05-24T19:54:00-05:00' }),
+    ];
+    expect(daylightEnvelope(days)).toEqual({
+      sunriseTime: '2026-05-24T06:03:00-05:00',
+      sunsetTime: '2026-05-24T19:54:00-05:00',
+    });
+  });
+
+  it('is null on both ends when no day reports times', () => {
+    const days = [mkDay(goHours(7, 6), { sunriseTime: null, sunsetTime: null })];
+    expect(daylightEnvelope(days)).toEqual({ sunriseTime: null, sunsetTime: null });
   });
 });
