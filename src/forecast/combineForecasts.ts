@@ -1,10 +1,5 @@
-import type {
-  ForecastResponse,
-  MarineResponse,
-  CombinedHour,
-  DayForecast,
-  CombinedForecast,
-} from './types';
+import type { ForecastResponse, MarineResponse } from './responseTypes';
+import type { CombinedHour, DayForecast, CombinedForecast } from '../model';
 import {
   metersToMiles,
   millimetersToInches,

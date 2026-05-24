@@ -86,6 +86,10 @@ What I did:
 4. Started implementing data first
     a. used claude learning mode 
     b. created skill to automate my preferences
+    c. normalize data at the lowest level 
+5. Implement window and business logic 
+    a. setting status dynamically so user does not worry about it 
+    b. if we have incomplete data then fail to no go 
 
 During Implementation Log: 
 1. Decided against using nodejs as it is overkill for this project because no api key and auth

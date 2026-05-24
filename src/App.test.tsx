@@ -6,7 +6,7 @@ import App from './App';
 // render state deterministically — no store or network needed. mockUseQuery lets
 // every test set exactly what useGetCombinedForecastQuery returns.
 const mockUseQuery = vi.fn();
-vi.mock('./features/weather/weatherApi', () => ({
+vi.mock('./forecast/forecastApi', () => ({
   useGetCombinedForecastQuery: () => mockUseQuery(),
 }));
 

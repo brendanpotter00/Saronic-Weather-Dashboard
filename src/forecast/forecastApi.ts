@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { CACHE_TTL_SECONDS, FORECAST_DAYS } from '../../config/app';
-import { DEFAULT_SITE } from '../../config/sites';
-import type { Site } from '../../config/sites';
+import { CACHE_TTL_SECONDS, FORECAST_DAYS } from '../config/app';
+import { DEFAULT_SITE } from '../config/sites';
+import type { Site } from '../config/sites';
 import {
   FORECAST_BASE_URL,
   MARINE_BASE_URL,
@@ -13,7 +13,8 @@ import {
   WIND_SPEED_UNIT,
   LENGTH_UNIT,
 } from './openMeteoConstants';
-import type { ForecastResponse, MarineResponse, CombinedForecast } from './types';
+import type { ForecastResponse, MarineResponse } from './responseTypes';
+import type { CombinedForecast } from '../model';
 import { buildCombinedForecast } from './combineForecasts';
 
 function forecastUrl(site: Site): string {
@@ -77,8 +78,8 @@ function isMarineResponse(data: unknown): data is MarineResponse {
   return !!d && Array.isArray(d.hourly?.time) && Array.isArray(d.hourly?.wave_height);
 }
 
-export const weatherApi = createApi({
-  reducerPath: 'weatherApi',
+export const forecastApi = createApi({
+  reducerPath: 'forecastApi',
   // Placeholder baseUrl: the queryFn passes absolute URLs on two different
   // hosts, which override this. We keep fetchBaseQuery for its normalized error
   // shape and to reuse RTK's fetch handling.
@@ -142,4 +143,4 @@ export const weatherApi = createApi({
   }),
 });
 
-export const { useGetCombinedForecastQuery } = weatherApi;
+export const { useGetCombinedForecastQuery } = forecastApi;

@@ -3,14 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './hooks';
-import { weatherApi } from '../features/weather/weatherApi';
+import { forecastApi } from '../forecast/forecastApi';
 
 // The typed hooks are thin re-exports of useDispatch/useSelector. We exercise them
 // through a real Provider + the real store so the typing wires end-to-end, rather
 // than importing them just to tick coverage.
 function Probe() {
   const dispatch = useAppDispatch();
-  const hasApiState = useAppSelector((state) => weatherApi.reducerPath in state);
+  const hasApiState = useAppSelector((state) => forecastApi.reducerPath in state);
   return <span>{typeof dispatch === 'function' && hasApiState ? 'wired' : 'broken'}</span>;
 }
 
