@@ -90,13 +90,6 @@ describe('Dashboard (via App)', () => {
     expect(screen.getByText(new RegExp(`${third.weekday},`))).toBeInTheDocument();
   });
 
-  it('shows the demo length (DEMO_WINDOW_HOURS) as a card in the day detail', () => {
-    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
-    renderApp();
-    expect(screen.getByText(/demo length/i)).toBeInTheDocument();
-    expect(screen.getByText(/6 hours/i)).toBeInTheDocument();
-  });
-
   it('shows the marine-unavailable banner when waves are missing', () => {
     mockUseQuery.mockReturnValue({
       data: forecast({ marineAvailable: false, marineSite: null }),

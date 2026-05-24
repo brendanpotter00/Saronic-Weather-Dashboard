@@ -8,19 +8,26 @@ design system / tokens) and `CLAUDE.md` (the *why* and the review bar).
 
 A one-page, mobile-responsive dashboard built with **MUI** on top of the already-complete data
 (`src/forecast/`) and scoring (`src/scoring/`) layers. It is **pure presentation**: it maps the
-domain `Status` (`go` / `caution` / `no-go`) to colour and renders values the data layer already
-shaped. No thresholds, unit math, timestamp math, or window-scanning happen in components.
+domain `Status` (`go` / `caution` / `no-go`) to colour, renders values the data layer already
+shaped, and dims the hours scoring flagged out-of-window. No thresholds, unit math, timestamp
+math, or window-scanning happen in components — the one piece of view state that feeds scoring is
+the dashboard-wide window config (available window + demo length), passed back into the scoring
+pass via `useScoredForecast`.
 
-Layout is **top-down**: context → overview → detail.
+Layout is **top-down**: context → config → overview → detail.
 
-1. **Header** — title only (named after the site); the demo-length requirement now lives in the
-   day detail's `WindowSummary`.
+1. **Header** — title only (named after the site).
 2. **Pinned-window slot** — reserved, renders nothing today (see seams below).
-3. **Horizon line** — the centerpiece: a row of color-coded day "cards", each a contiguous line
-   of that day's daylight hours coloured by hour status. This is how Tara picks a day.
-4. **Day detail** — opens **inline below the line** for the selected day: the day's badge as a
-   big word, the two-windows summary, and every daylight hour with its four factor readings.
-5. **Footer** — the status legend/key and data-source attribution (resolved forecast + marine
+3. **Window controls** — the dashboard-wide config bar: the **available window** (the clock-hour
+   band a demo may run in) and the **demo length**, plus the exact daylight envelope and a live
+   "N of 10 days have a valid window" count. Set once at the top; applies to every day.
+4. **Horizon line** — the centerpiece: a row of color-coded day "cards", each a contiguous line
+   of that day's daylight hours coloured by hour status, with out-of-window hours dimmed. This is
+   how Tara picks a day.
+5. **Day detail** — opens **inline below the line** for the selected day: the day's badge as a
+   big word, a plain-language summary, then every daylight hour with its four factor readings
+   (out-of-window rows dimmed).
+6. **Footer** — the status legend/key and data-source attribution (resolved forecast + marine
    grid cells).
 
 ## Data flow
@@ -29,41 +36,46 @@ Layout is **top-down**: context → overview → detail.
 useGetCombinedForecastQuery()         RTK Query, 10-min in-memory cache  (src/forecast/forecastApi.ts)
         │  → CombinedForecast
         ▼
-useScoredForecast()                   useMemo(scoreForecast)             (src/dashboard/hooks/useScoredForecast.ts)
-        │  → ScoredForecast { site, marineSite, timezone, marineAvailable, days: ScoredDay[] }
+useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/dashboard/hooks/useScoredForecast.ts)
+        │  → ScoredForecast { site, marineSite, timezone, marineAvailable,
+        │       demoWindowHours, availableWindow, daylightBounds, daylightEnvelope, days: ScoredDay[] }
         ▼
-<Dashboard>                           owns selectedDate: string | null   (src/dashboard/Dashboard.tsx)
+<Dashboard>          owns selectedDate + windowConfig (ScoringOptions | null)  (src/dashboard/Dashboard.tsx)
         ├─ <DashboardHeader>  (title only)
         ├─ <PinnedWindowSlot> (renders null)
+        ├─ <WindowControls>   (available window + demo length → setWindowConfig)
         ├─ marine-unavailable <Alert> (when !marineAvailable)
-        ├─ <HorizonStrip>     → <DayColumn> → <HourLine>      (click → setSelectedDate)
-        ├─ <DayDetail>        → <WindowSummary> + <HourRow> → <FactorCell>
+        ├─ <HorizonStrip>     → <DayColumn> → <HourLine>   (click → setSelectedDate; out-of-window hours dimmed)
+        ├─ <DayDetail>        → <HourRow> → <FactorCell>   (out-of-window rows dimmed)
         └─ <DashboardFooter>  → <StatusLegend> + <Attribution>
 ```
 
-- **Scoring is run once, memoised on the query `data` reference.** Expand/collapse never re-scores.
-- **Selected day is local `useState`**, keyed by the stable `date` string (not an array index),
-  defaulting to day 0 (today). It is *not* in Redux — it's ephemeral view state with one owner.
+- **Scoring is memoised on the query `data` reference and the window knobs.** Expand/collapse and
+  unrelated renders never re-score; only a refetch or a real window/demo-length change does.
+- **Selected day and window config are local `useState`**, owned in `Dashboard` (not Redux — both
+  are ephemeral view state with one owner). `selectedDate` is the stable `date` string (defaults
+  to day 0, today); `windowConfig` is `null` until Tara edits, so scoring falls back to the
+  product defaults and *echoes* them back, and `WindowControls` seeds itself from those echoes.
 
 ## Component map (`src/dashboard/`, organized by kind: shell + `format.ts` at root, `hooks/`, `components/`)
 
 | File | Responsibility |
 | --- | --- |
-| `Dashboard.tsx` | Page shell + layout; owns `selectedDate`; loading (Skeleton) / error (Alert) / empty states. |
-| `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast`; the single data entry point. |
-| `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day labels). |
+| `Dashboard.tsx` | Page shell + layout; owns `selectedDate` and `windowConfig`; loading (Skeleton) / error (Alert) / empty states. |
+| `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast(data, windowConfig)`; the single data entry point. |
+| `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day/hour labels: `formatHourLabel`, `formatClockTime`, `formatHourOfDay`). |
 | `components/StatusBadge.tsx` | The go/caution/no-go pill used in the legend (label + colour from the status map). |
 | `components/DashboardHeader.tsx` | Title (site-named) only. |
+| `components/WindowControls.tsx` | The dashboard-wide config bar: available-window + demo-length pickers (clamped to `daylightBounds`), the exact daylight envelope line, and the live candidate count. Reports edits up via `onChange`; holds no state. |
 | `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
 | `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
 | `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
 | `components/PinnedWindowSlot.tsx` | Reserved empty slot for the deferred pin-to-top feature. |
 | `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones). |
 | `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
-| `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status. |
-| `components/DayDetail.tsx` | Inline drill-down for the selected day. |
-| `components/WindowSummary.tsx` | Two stat cards: the possible daylight window (sunrise→sunset) + the constant demo length (`demoWindowHours`). |
-| `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header). |
+| `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status; out-of-window hours dimmed (reads `hour.isInWindow`). |
+| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. |
+| `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
 Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
@@ -71,30 +83,46 @@ Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
 ## Key product decisions baked into the UI
 
 - **The line is the glance.** A run of green hours is a visible contiguous in-bounds window, so
-  Tara sees "which hours look good" by eye.
-- **We never name/recommend a specific window.** Choosing the window is the human's call
-  (explicitly out of scope, and `scoring.ts` deliberately computes the *best achievable* window
-  tier without naming its hours). The UI shows all daylight hours coloured + the day badge; it
-  does **not** highlight a chosen 6-hour block. Keep it that way unless scope changes.
-- **Two facts, stated side by side** (`WindowSummary`): the *possible* window is daylight
-  (sunrise→sunset, varies daily); the *demo length* is the constant requirement
-  (`DEMO_WINDOW_HOURS`, echoed onto each `ScoredDay` as `demoWindowHours`). The header carries
-  neither now — it's just the title.
+  Tara sees "which hours look good" by eye. Hours outside the available window are dimmed, so the
+  band she set reads against the rest of the day.
+- **We never name/recommend a specific demo block.** Choosing the exact hours is the human's call
+  (out of scope, and `scoring.ts` computes the *best achievable* tier without naming its hours).
+  The UI dims the *available window* (a band Tara sets) but never highlights a chosen demo-length
+  block inside it. Keep it that way unless scope changes.
+- **Config lives at the top, applied dashboard-wide.** `WindowControls` owns the *available window*
+  (the clock-hour band, defaulting to the actual daylight **hours** the forecast covers, so the
+  picker never offers an hour with no reading) and the *demo length* (`DEMO_WINDOW_HOURS` default,
+  adjustable down to `DEMO_MIN_HOURS`). Both feed the scoring pass, so the horizon + badges
+  re-score live. The day detail no longer repeats them — it shows the badge and the hours.
 - **Fail-safe surfaces, not silence.** `marineAvailable === false` shows a banner; an incomplete
   day shows a warning in its detail. The data layer went to trouble to flag these — don't hide them.
 
-## One cross-layer change this work made
+## Cross-layer changes this work made
 
-`ScoredDay` was extended (in `src/scoring/scoring.ts`) to pass through `sunriseTime` and
-`sunsetTime`, and to echo `demoWindowHours = DEMO_WINDOW_HOURS`. This keeps the daylight-window
-math out of the UI (the "shape data at the lowest level" rule) — the detail renders the
-sunrise→sunset span and the demo length straight from these fields instead of computing them from
-raw hours. (`daylightDurationSeconds` stays on `DayForecast`, where the data layer uses it in the
-day-level `complete` gate, but it is not carried onto `ScoredDay` — nothing in the UI renders it.)
+The window/demo-length feature pushed all its math down into the scoring layer (the "shape data at
+the lowest level" rule), so components stay dumb:
+
+- **New `src/scoring/window.ts`** — owns the `AvailableWindow` type, `isHourInWindow`,
+  `daylightEnvelope` (precise earliest sunrise / latest sunset, for the control's context line),
+  and `defaultAvailableWindow` (the default = the actual daylight **hours** present across the days,
+  so it clips nothing real and the picker can't offer an empty hour).
+- **`scoreForecast(forecast, options?)`** takes `{ demoWindowHours, availableWindow }` (both
+  optional → product defaults). It clips the candidacy scan to the window, tags each `ScoredHour`
+  with `isInWindow`, and echoes `demoWindowHours`, `availableWindow`, `daylightBounds`, and
+  `daylightEnvelope` on `ScoredForecast` so the UI renders config as data.
+- **`ScoredHour.isInWindow`** drives the dimming in `HourLine` / `HourRow`. The sun times the UI
+  shows now ride on the per-forecast `daylightEnvelope` (earliest sunrise / latest sunset), so
+  `ScoredDay` no longer echoes per-day `sunriseTime` / `sunsetTime` / `demoWindowHours` — those
+  were only read by the now-deleted `WindowSummary`, so they were dropped as dead pass-through (the
+  same cleanup `daylightDurationSeconds` got, which still stays on `DayForecast` for the day-level
+  `complete` gate; nothing in the UI renders it).
+- **`config/app.ts`** adds `DEMO_MIN_HOURS` / `DEMO_MAX_HOURS` bounds for the picker.
 
 ## In scope (built)
 
 - Light MUI theme + centralized style tokens.
+- **Dashboard-wide available-window + demo-length config** (top bar): clips the candidacy scan
+  live and dims out-of-window hours across the line and the detail.
 - 10-day horizon line; click-to-open inline day detail with the hourly breakdown.
 - Status legend/key; source + location attribution with resolved grid cells.
 - Marine-unavailable and incomplete-day states.
@@ -104,10 +132,9 @@ day-level `complete` gate, but it is not carried onto `ScoredDay` — nothing in
 
 These are intentionally **not built**, but the structure is ready so each is additive:
 
-1. **Configurable demo-window length.** `DEMO_WINDOW_HOURS` (`src/config/app.ts`) is already a
-   named constant echoed onto `ScoredDay.demoWindowHours`, so the UI renders it as data today.
-   *Seam:* make `scoreForecast(forecast, { demoWindowHours })` take it as an argument and have
-   `useScoredForecast(demoWindowHours)` pass it from config/state. Components don't change.
+1. ~~**Configurable demo-window length.**~~ **Built.** `scoreForecast(forecast, { demoWindowHours,
+   availableWindow })` takes both as arguments; `useScoredForecast(windowConfig)` passes them from
+   `Dashboard` state, set via `WindowControls`. (See "Cross-layer changes" above.)
 
 2. **Pin a chosen window to the top.** `PinnedWindowSlot` already sits at the top of the layout
    and `Dashboard` already owns the day selection. *Seam:* add `pinnedWindow` state in
@@ -119,10 +146,13 @@ These are intentionally **not built**, but the structure is ready so each is add
    per-city thresholds become a `thresholdsForSite(site)` lookup in the scoring layer.
    `Attribution` already renders resolved coords, so it generalizes for free.
 
-4. **Slide-out config sidebar.** *Seam:* a single MUI `<Drawer>` toggled from `DashboardHeader`,
-   hosting the demo-window-length input and city/threshold controls. Purely additive — `Dashboard`
-   is the layout owner and config flows through `useScoredForecast` args.
+4. **Slide-out config sidebar.** The window/demo config currently lives in the always-visible
+   `WindowControls` bar (other treatments — modal, accordion, drawer — were prototyped in
+   `docs/prototype-window-config.html`). If config grows (city + per-city thresholds), a MUI
+   `<Drawer>` toggled from the header is the seam; `Dashboard` owns layout and config still flows
+   through `useScoredForecast` args.
 
 **The unifying seam:** every deferred item is "more inputs into `useScoredForecast` /
-`scoreForecast`" plus "more chrome in `DashboardHeader`." Keep scoring parameterizable and the
-header as the control surface, and the components below stay dumb and unchanged.
+`scoreForecast`" plus "more chrome at the top (header or `WindowControls`)." Keep scoring
+parameterizable and the top of the page as the control surface, and the components below stay
+dumb and unchanged.

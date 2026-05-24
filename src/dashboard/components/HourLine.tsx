@@ -1,7 +1,8 @@
 // The color-coded line — the heart of the glance. One segment per daylight hour, coloured by
 // that hour's status. A run of green is a stretch of clear hours; the eye reads contiguous
 // in-bounds windows directly off the line, which is how Tara picks a day to open WITHOUT us
-// recommending a specific window (explicitly out of scope).
+// recommending a specific window (explicitly out of scope). Hours outside the available window
+// are dimmed (not hidden) so the band Tara set reads at a glance against the rest of the day.
 
 import Box from '@mui/material/Box';
 import type { ScoredHour } from '../../scoring/scoring';
@@ -24,8 +25,13 @@ export function HourLine({ hours }: { hours: ScoredHour[] }) {
         <Box
           key={hour.time}
           // title gives a native hover tooltip per hour without pulling in MUI Tooltip 240×.
-          title={`${formatHourLabel(hour.time)} — ${STATUS_LABEL[hour.status]}`}
-          sx={{ flex: 1, minWidth: 0, bgcolor: `${STATUS_TO_PALETTE[hour.status]}.main` }}
+          title={`${formatHourLabel(hour.time)} — ${STATUS_LABEL[hour.status]}${hour.isInWindow ? '' : ' (outside window)'}`}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            bgcolor: `${STATUS_TO_PALETTE[hour.status]}.main`,
+            opacity: hour.isInWindow ? 1 : 0.3,
+          }}
         />
       ))}
     </Box>

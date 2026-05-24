@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Window + Demo-Length Config — Prototype Gallery</title>
+<style>
+  /* ----- Tokens mirror src/theme/theme.ts (light, near-monochrome + status) ----- */
+  :root{
+    --canvas:#fafafa; --paper:#ffffff; --line:#e0e0e0;
+    --ink:#0a0a0a; --ink-2:#5c5c5c;
+    --go:#2e7d32; --cau:#ed6c02; --no:#c62828;
+    --go-bg:#e7f0e8; --cau-bg:#fbeede; --no-bg:#f7e3e3;
+    --unit:8px; --radius:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --dim:.28; /* out-of-window opacity */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--canvas);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:48px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+
+  /* ----- Typography helpers (match variant= roles) ----- */
+  .overline{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .h1{font-size:1.9rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .h3{font-size:1.05rem;font-weight:700}
+  .caption{font-size:.75rem;color:var(--ink-2)}
+  .muted{color:var(--ink-2)}
+
+  /* ----- Cards (MuiCard outlined) ----- */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius)}
+
+  /* ----- Buttons (MuiButton outlined, no elevation, none-transform) ----- */
+  .btn{font-family:var(--font);font-size:.82rem;font-weight:600;text-transform:none;
+    padding:7px 14px;border-radius:var(--radius);border:1px solid var(--line);
+    background:var(--paper);color:var(--ink);cursor:pointer;transition:.12s;white-space:nowrap}
+  .btn:hover{background:#f4f4f4}
+  .btn.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.solid:hover{background:#262626}
+
+  /* ----- Native selects styled like MUI outlined inputs ----- */
+  select{font-family:var(--font);font-size:.9rem;color:var(--ink);background:var(--paper);
+    border:1px solid var(--line);border-radius:var(--radius);padding:8px 30px 8px 12px;cursor:pointer;
+    appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235c5c5c' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+  select:focus{outline:none;border-color:var(--ink)}
+
+  /* ----- Top bar ----- */
+  header.top{padding:28px 0 16px}
+  header.top .h1{margin-top:6px}
+  header.top .sub{color:var(--ink-2);font-size:.85rem;margin-top:6px}
+
+  /* ----- Prototype switcher (MuiToggleButtonGroup-ish) ----- */
+  .switcher{margin:22px 0 6px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--paper)}
+  .seg button{font-family:var(--font);font-size:.8rem;font-weight:600;padding:9px 16px;border:none;
+    background:transparent;color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line);transition:.12s}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--ink);color:#fff}
+  .seg button:not(.on):hover{background:#f4f4f4;color:var(--ink)}
+  .variant-note{margin-top:10px;font-size:.82rem;color:var(--ink-2);min-height:1.2em}
+  .variant-note b{color:var(--ink);font-weight:600}
+
+  /* ----- Editor region (swapped by variant) ----- */
+  #editor{margin-top:14px}
+  .editor-card{padding:16px 18px}
+  .row{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field .overline{margin-bottom:0}
+  .winpair{display:flex;align-items:center;gap:8px}
+  .winpair .dash{color:var(--ink-2);font-weight:600}
+  .grow{flex:1}
+  .liveStat{font-size:.82rem;color:var(--ink-2)}
+  .liveStat b{color:var(--ink);font-weight:700}
+  .editor-stack .field{margin-bottom:14px}
+
+  /* Variant B/D summary strip */
+  .summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;flex-wrap:wrap}
+  .summary .txt{font-size:.95rem}
+  .summary .txt b{font-weight:700}
+  .chip{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink);
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;background:var(--paper)}
+
+  /* Variant C accordion */
+  .acc-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;cursor:pointer}
+  .acc-head .chev{transition:transform .18s;color:var(--ink-2)}
+  .acc.open .acc-head .chev{transform:rotate(180deg)}
+  .acc-body{display:none;padding:0 18px 18px;border-top:1px solid var(--line)}
+  .acc.open .acc-body{display:block;padding-top:16px}
+
+  /* Modal (Variant B) + Drawer (Variant D) */
+  .scrim{position:fixed;inset:0;background:rgba(10,10,10,.42);z-index:40;display:none}
+  .scrim.show{display:block}
+  .modal{position:fixed;z-index:50;left:50%;top:84px;transform:translateX(-50%);width:min(460px,calc(100vw - 32px));
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.3);display:none}
+  .modal.show{display:block}
+  .modal .m-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .modal .m-body{padding:18px 20px}
+  .modal .m-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+  .drawer{position:fixed;z-index:50;top:0;right:0;height:100vh;width:min(340px,90vw);
+    background:var(--paper);border-left:1px solid var(--line);box-shadow:-24px 0 60px -20px rgba(0,0,0,.3);
+    transform:translateX(100%);transition:transform .22s cubic-bezier(.2,.8,.2,1);padding:20px}
+  .drawer.show{transform:translateX(0)}
+  .drawer .d-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .iconbtn{border:1px solid var(--line);background:var(--paper);border-radius:var(--radius);width:34px;height:34px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-2);font-size:18px;line-height:1}
+  .iconbtn:hover{background:#f4f4f4;color:var(--ink)}
+
+  /* ----- Shared dashboard ----- */
+  .seclabel{margin:26px 0 10px}
+  /* Horizon line */
+  .hzcard{padding:16px}
+  .hzrow{display:flex;gap:8px;overflow-x:auto}
+  .hzcol{flex:1;min-width:56px;background:transparent;border:none;cursor:pointer;padding:8px 6px;border-radius:var(--radius);
+    font-family:var(--font);transition:.12s;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  .hzcol:hover{background:#f4f4f4}
+  .hzcol.sel{background:#f0f0f0;box-shadow:inset 0 0 0 2px var(--ink)}
+  .hzlab{text-align:center;line-height:1.15}
+  .hzlab .dow{display:block;font-size:.7rem;font-weight:700;letter-spacing:.06em;color:var(--ink-2);text-transform:uppercase}
+  .hzlab .dow.today{color:var(--ink)}
+  .hzlab .num{display:block;font-weight:800;font-size:1.05rem;line-height:1.1}
+  .hzbar{display:flex;height:24px;border-radius:5px;overflow:hidden;gap:1px;background:var(--canvas)}
+  .seg-h{flex:1;min-width:0;transition:opacity .12s}
+  .seg-h.out{opacity:var(--dim)}
+  .s-go{background:var(--go)} .s-cau{background:var(--cau)} .s-no{background:var(--no)}
+  .hz-foot{margin-top:12px;font-size:.78rem;color:var(--ink-2);text-align:center}
+  .hz-foot b{color:var(--ink)}
+
+  /* Day detail */
+  #detail{margin-top:22px}
+  .detail-strip{height:5px;border-radius:var(--radius) var(--radius) 0 0}
+  .detail-body{padding:20px}
+  .badge-word{font-weight:900;font-size:2.1rem;letter-spacing:-.02em;line-height:1}
+  .stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 4px}
+  .stat{flex:1;min-width:150px;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+  .stat .v{font-size:1.25rem;font-weight:800;margin-top:4px}
+  .daylight-note{font-size:.82rem;color:var(--ink-2);margin-top:4px}
+  .daylight-note b{color:var(--ink);font-weight:600}
+  .grid-head,.hour-row{display:grid;grid-template-columns:6px 56px repeat(4,1fr);column-gap:12px;align-items:center}
+  .grid-head{padding:14px 0 6px}
+  .grid-head .caption{text-align:right}
+  .grid-head .caption.l{text-align:left}
+  .hour-row{padding:7px 0;border-top:1px solid var(--line)}
+  .hour-row.out{opacity:var(--dim)}
+  .hbar{height:20px;border-radius:4px}
+  .htime{font-size:.75rem;color:var(--ink-2)}
+  .hv{font-size:.85rem;font-weight:700;text-align:right}
+  .hv.go{color:var(--ink)} .hv.cau{color:var(--cau)} .hv.no{color:var(--no)}
+  .wlabel{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;margin-left:10px;vertical-align:middle}
+  .wlabel.in{background:#eef2ee;color:var(--ink-2)}
+
+  .footnote{margin-top:30px;font-size:.78rem;color:var(--ink-2);line-height:1.7;border-top:1px solid var(--line);padding-top:16px}
+  .footnote b{color:var(--ink);font-weight:600}
+  @media(max-width:560px){.hzcol{min-width:46px}.hzbar{height:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="overline">Gulf Test Range · Gulfport, MS · prototype</div>
+    <div class="h1">Available Window &amp; Demo Length — Config Gallery</div>
+    <div class="sub">Same dashboard below; switch the <b>editor chrome</b> to compare. Light tokens match the shipped MUI app.</div>
+  </header>
+
+  <!-- Prototype switcher -->
+  <div class="switcher">
+    <div class="overline" style="margin-bottom:8px">Config UI option</div>
+    <div class="seg" id="seg">
+      <button data-v="A" class="on">A · Inline bar</button>
+      <button data-v="B">B · Summary + modal</button>
+      <button data-v="C">C · Accordion</button>
+      <button data-v="D">D · Drawer</button>
+    </div>
+    <div class="variant-note" id="variantNote"></div>
+  </div>
+
+  <!-- Editor (swapped per variant) -->
+  <div id="editor"></div>
+
+  <!-- Shared dashboard -->
+  <div class="overline seclabel">10-Day Forecast</div>
+  <div id="horizon"></div>
+  <div id="detail"></div>
+
+  <div class="footnote">
+    <b>Prototype</b> — illustrative mock data. The <b>Available Time Window</b> is dashboard-wide (one range for
+    all 10 days), defaults to widest daylight coverage (<b>floor(earliest sunrise) → ceil(latest sunset)</b>), and
+    <b>highlights</b> its interval: hours outside it stay visible but dimmed. A day's badge = the best status of any
+    contiguous <b>demo-length</b> block that fits <b>inside</b> the window — so narrowing the window or lengthening
+    the demo can flip a day to NO-GO. We never name a "best" window; choosing the exact block stays Tara's call.
+  </div>
+</div>
+
+<!-- Modal + Drawer hosts (used by variants B and D) -->
+<div class="scrim" id="scrim" onclick="closeOverlays()"></div>
+<div class="modal" id="modal"></div>
+<div class="drawer" id="drawer"></div>
+
+<script>
+/* ---------- thresholds (mirror src/scoring/weatherThresholds.ts) ---------- */
+function windTier(kn){return kn>20?2:kn>=15?1:0;}      // <15 go · 15–20 caution · >20 no-go
+function waveTier(ft){return ft>4?2:ft>=2?1:0;}        // <2 · 2–4 · >4
+function precipTier(mm){return mm>0.05?2:0;}           // any rain = no-go
+function visTier(mi){return mi<3?2:mi<10?1:0;}         // ≥10 · 3–10 · <3
+function hourTier(x){return Math.max(windTier(x.wind),waveTier(x.wave),precipTier(x.precip),visTier(x.vis));}
+const SCLS=['s-go','s-cau','s-no'], SWORD=['GO','CAUTION','NO-GO'], SVAR=['go','cau','no'];
+
+/* ---------- deterministic mock data ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const PROFILES=[
+  {windBase:9, windAdd:3, waveBase:1.3,waveAdd:.3,rain:false,vis:14},
+  {windBase:11,windAdd:3, waveBase:1.6,waveAdd:.4,rain:false,vis:14},
+  {windBase:16,windAdd:1, waveBase:1.6,waveAdd:.3,rain:false,vis:13},                       // wind sits caution
+  {windBase:12,windAdd:3, waveBase:4.3,waveAdd:.6,rain:false,vis:13},                       // wave no-go all day
+  {windBase:13,windAdd:2, waveBase:2.2,waveAdd:.5,rain:true,rprob:80,ramt:1.2,vis:8},       // rain all day
+  {windBase:10,windAdd:16,waveBase:1.4,waveAdd:1.0,rain:false,vis:14,ramp:true},            // AM clear, PM wind builds
+  {windBase:9, windAdd:2, waveBase:1.4,waveAdd:.3,rain:{from:6,to:10},rprob:78,ramt:.9,vis:14}, // AM rain clears
+  {windBase:10,windAdd:2, waveBase:1.5,waveAdd:.3,rain:false,vis:6},                        // low vis all day
+  {windBase:11,windAdd:2, waveBase:1.7,waveAdd:.4,rain:false,vis:13},
+  {windBase:9, windAdd:2.5,waveBase:1.4,waveAdd:.3,rain:false,vis:14}
+];
+const DAY_LO=6, DAY_HI=20; // generated daylight hours per day (inclusive)
+function genHours(p,seed){
+  const rng=mulberry32(seed),hours=[];
+  for(let h=DAY_LO;h<=DAY_HI;h++){
+    const ramp=p.ramp?Math.max(0,(h-11)/8):0;
+    const wind=Math.max(3,p.windBase+(p.windAdd||0)*ramp+(rng()*2-1)*1.4);
+    const wave=Math.max(.4,p.waveBase+(p.waveAdd||0)*ramp+(rng()*2-1)*.28);
+    let rains=false;
+    if(p.rain===true)rains=true;
+    else if(p.rain&&typeof p.rain==='object')rains=(h>=p.rain.from&&h<=p.rain.to);
+    const precip=rains?Math.max(0.1,(p.ramt||.9)*(.5+rng())):0;
+    const vis=Math.max(.5,Math.min(16,p.vis+(rng()*1.4-.7)));
+    hours.push({h,wind,wave,precip,vis});
+  }
+  return hours;
+}
+const DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const DOWFULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=PROFILES.map((p,i)=>{
+  const d=new Date();d.setDate(d.getDate()+i);
+  // slightly varying sunrise/sunset so "widest coverage" rounding is meaningful
+  const sunrise=6+0.05+(i%3)*0.12;   // ~6:03–6:27
+  const sunset=19+0.6+((i*7)%5)*0.06; // ~7:36–7:54 PM
+  return {idx:i,date:d,dow:DOW[d.getDay()],dnum:d.getDate(),mon:MON[d.getMonth()],
+          sunrise,sunset,hours:genHours(p,i*7919+13)};
+});
+
+/* default available window = floor(earliest sunrise) → ceil(latest sunset) */
+const DEFAULT_START=Math.floor(Math.min(...DAYS.map(d=>d.sunrise)));
+const DEFAULT_END=Math.ceil(Math.max(...DAYS.map(d=>d.sunset)));
+/* daylight envelope: the window may never extend past the earliest sunrise / latest sunset */
+const ENVELOPE_SUNRISE=Math.min(...DAYS.map(d=>d.sunrise));
+const ENVELOPE_SUNSET=Math.max(...DAYS.map(d=>d.sunset));
+
+/* ---------- shared state ---------- */
+const STATE={variant:'A',startHour:DEFAULT_START,endHour:DEFAULT_END,demoLen:6,selected:0,
+             modal:false,drawer:false,acc:false};
+
+/* ---------- scoring with window + demo length ---------- */
+function bestTierInWindow(hours,startH,endH,demoLen){
+  const r=hours.filter(x=>x.h>=startH&&x.h<=endH).sort((a,b)=>a.h-b.h);
+  if(r.length<demoLen)return 2;             // window too small to fit a demo
+  let best=2;
+  for(let i=0;i+demoLen-1<r.length;i++){
+    const block=r.slice(i,i+demoLen);
+    let contig=true;
+    for(let j=1;j<block.length;j++)if(block[j].h-block[j-1].h!==1){contig=false;break;}
+    if(!contig)continue;
+    const t=Math.max(...block.map(hourTier));
+    if(t<best)best=t;
+    if(best===0)break;
+  }
+  return best;
+}
+const inWin=h=>h>=STATE.startHour&&h<=STATE.endHour;
+function candidateCount(){
+  return DAYS.filter(d=>bestTierInWindow(d.hours,STATE.startHour,STATE.endHour,STATE.demoLen)<2).length;
+}
+
+/* ---------- formatting ---------- */
+function fmtHour(h){const ap=h<12||h===24?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+' '+ap;}
+function fmtClock(dec){const h=Math.floor(dec);const m=Math.round((dec-h)*60);const ap=h<12?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+':'+String(m).padStart(2,'0')+' '+ap;}
+function summaryText(){return `${fmtHour(STATE.startHour)} – ${fmtHour(STATE.endHour)} · ${STATE.demoLen}-hour demo`;}
+
+/* ---------- shared controls (DRY across all variants) ---------- */
+/* options clamp to the daylight envelope: start can't precede sunrise, end can't follow sunset */
+function startOpts(){let o='';for(let h=DEFAULT_START;h<=STATE.endHour-1;h++)o+=`<option value="${h}" ${h===STATE.startHour?'selected':''}>${fmtHour(h)}</option>`;return o;}
+function endOpts(){let o='';for(let h=STATE.startHour+1;h<=DEFAULT_END;h++)o+=`<option value="${h}" ${h===STATE.endHour?'selected':''}>${fmtHour(h)}</option>`;return o;}
+function demoOpts(){let o='';for(let n=1;n<=12;n++)o+=`<option value="${n}" ${n===STATE.demoLen?'selected':''}>${n} ${n===1?'hour':'hours'}</option>`;return o;}
+function controls(layout){ // 'row' | 'stack'
+  const cls=layout==='stack'?'editor-stack':'';
+  const winField=`<div class="field"><span class="overline">Available window</span>
+      <div class="winpair">
+        <select onchange="setStart(+this.value)">${startOpts()}</select>
+        <span class="dash">–</span>
+        <select onchange="setEnd(+this.value)">${endOpts()}</select>
+      </div>
+      <div class="caption" style="margin-top:6px">☀ Daylight ${fmtClock(ENVELOPE_SUNRISE)} – ${fmtClock(ENVELOPE_SUNSET)} · window stays within it</div></div>`;
+  const demoField=`<div class="field"><span class="overline">Demo length</span>
+      <select onchange="setDemo(+this.value)">${demoOpts()}</select></div>`;
+  return `<div class="${cls}"><div class="row">${winField}${demoField}</div>
+      <div class="liveStat" style="margin-top:12px"><b>${candidateCount()}</b> of 10 days have a valid window with these settings.</div></div>`;
+}
+
+/* ---------- editor variants ---------- */
+const NOTES={
+  A:'<b>Inline bar</b> — always editable, parameters always on screen. Most direct; takes the most vertical space.',
+  B:'<b>Summary + modal</b> — clean read-out; "Adjust" opens a focused dialog. Editing is deliberate, one click away.',
+  C:'<b>Accordion</b> — collapsed summary, expand to edit. Reuses the pattern already in the dashboard footer.',
+  D:'<b>Drawer</b> — a gear opens a slide-in panel. Keeps the top clean and scales to future city / threshold config.'
+};
+function renderEditor(){
+  document.getElementById('variantNote').innerHTML=NOTES[STATE.variant];
+  const host=document.getElementById('editor');
+  if(STATE.variant==='A'){
+    host.innerHTML=`<div class="card editor-card">${controls('row')}</div>`;
+  }else if(STATE.variant==='B'){
+    host.innerHTML=`<div class="card summary">
+        <div class="txt"><span class="overline">Window &amp; demo</span><br><b>${summaryText()}</b></div>
+        <button class="btn solid" onclick="openModal()">Adjust</button>
+      </div>`;
+  }else if(STATE.variant==='C'){
+    host.innerHTML=`<div class="card acc ${STATE.acc?'open':''}" id="acc">
+        <div class="acc-head" onclick="toggleAcc()">
+          <div class="txt"><span class="overline">Window &amp; demo</span><br><b>${summaryText()}</b></div>
+          <span class="chev">▾</span>
+        </div>
+        <div class="acc-body">${controls('stack')}</div>
+      </div>`;
+  }else if(STATE.variant==='D'){
+    host.innerHTML=`<div class="card summary">
+        <div class="chip">⏱ ${summaryText()}</div>
+        <button class="btn" onclick="openDrawer()"><span style="margin-right:6px">⚙</span>Configure</button>
+      </div>`;
+  }
+  renderOverlays();
+}
+function renderOverlays(){
+  const modal=document.getElementById('modal'),drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
+  modal.classList.toggle('show',STATE.variant==='B'&&STATE.modal);
+  drawer.classList.toggle('show',STATE.variant==='D'&&STATE.drawer);
+  scrim.classList.toggle('show',(STATE.variant==='B'&&STATE.modal)||(STATE.variant==='D'&&STATE.drawer));
+  if(STATE.variant==='B'&&STATE.modal){
+    modal.innerHTML=`<div class="m-head"><div class="h3">Adjust window &amp; demo</div><span class="iconbtn" onclick="closeOverlays()">×</span></div>
+      <div class="m-body">${controls('stack')}</div>
+      <div class="m-foot"><button class="btn solid" onclick="closeOverlays()">Done</button></div>`;
+  }
+  if(STATE.variant==='D'&&STATE.drawer){
+    drawer.innerHTML=`<div class="d-head"><div class="h3">Configure</div><span class="iconbtn" onclick="closeOverlays()">×</span></div>
+      ${controls('stack')}`;
+  }
+}
+
+/* ---------- shared dashboard render ---------- */
+function renderHorizon(){
+  const cols=DAYS.map(day=>{
+    const tier=bestTierInWindow(day.hours,STATE.startHour,STATE.endHour,STATE.demoLen);
+    const today=day.idx===0,sel=STATE.selected===day.idx;
+    const segs=day.hours.map(x=>{
+      const t=hourTier(x);const out=!inWin(x.h);
+      return `<span class="seg-h ${SCLS[t]} ${out?'out':''}" title="${fmtHour(x.h)} — ${SWORD[t]}${out?' (outside window)':''}"></span>`;
+    }).join('');
+    return `<button class="hzcol ${sel?'sel':''}" onclick="selectDay(${day.idx})">
+        <span class="hzlab"><span class="dow ${today?'today':''}">${today?'TODAY':day.dow}</span>
+          <span class="num" style="color:var(--${SVAR[tier]})">${day.dnum}</span></span>
+        <span class="hzbar">${segs}</span>
+      </button>`;
+  }).join('');
+  document.getElementById('horizon').innerHTML=`<div class="card hzcard">
+      <div class="hzrow">${cols}</div>
+      <div class="hz-foot">Dimmed segments fall <b>outside ${fmtHour(STATE.startHour)}–${fmtHour(STATE.endHour)}</b> · date color = best ${STATE.demoLen}-hr block inside the window</div>
+    </div>`;
+}
+function renderDetail(){
+  const day=DAYS[STATE.selected];
+  const tier=bestTierInWindow(day.hours,STATE.startHour,STATE.endHour,STATE.demoLen);
+  const inrangeCount=day.hours.filter(x=>inWin(x.h)).length;
+  let rec;
+  if(inrangeCount<STATE.demoLen)rec=`The ${fmtHour(STATE.startHour)}–${fmtHour(STATE.endHour)} window is shorter than a ${STATE.demoLen}-hour demo.`;
+  else if(tier===0)rec=`A clean ${STATE.demoLen}-hour block fits inside the window.`;
+  else if(tier===1)rec=`Best ${STATE.demoLen}-hour block inside the window runs caution — no hard limit breached.`;
+  else rec=`No ${STATE.demoLen}-hour block inside the window clears all factors.`;
+  const rows=day.hours.map(x=>{
+    const t=hourTier(x),out=!inWin(x.h);
+    const cell=(val,ft)=>`<span class="hv ${SVAR[ft]}">${val}</span>`;
+    return `<div class="hour-row ${out?'out':''}">
+        <span class="hbar ${SCLS[t]}"></span>
+        <span class="htime">${fmtHour(x.h)}</span>
+        ${cell(x.wind.toFixed(0)+' kn',windTier(x.wind))}
+        ${cell(x.wave.toFixed(1)+' ft',waveTier(x.wave))}
+        ${cell(x.precip<0.06?'none':x.precip.toFixed(1)+' mm',precipTier(x.precip))}
+        ${cell(x.vis>=15.5?'15+ mi':x.vis.toFixed(0)+' mi',visTier(x.vis))}
+      </div>`;
+  }).join('');
+  document.getElementById('detail').innerHTML=`<div class="card">
+      <div class="detail-strip" style="background:var(--${SVAR[tier]})"></div>
+      <div class="detail-body">
+        <div class="overline">${day.idx===0?'Today · ':''}${DOWFULL[day.date.getDay()]}, ${day.mon} ${day.dnum}</div>
+        <div class="badge-word" style="color:var(--${SVAR[tier]})">${SWORD[tier]}</div>
+        <div class="muted" style="margin-top:8px;font-size:.9rem">${rec}</div>
+
+        <div class="stat-row">
+          <div class="stat"><span class="overline">Available window</span><div class="v">${fmtHour(STATE.startHour)} – ${fmtHour(STATE.endHour)}</div>
+            <div class="daylight-note">Dashboard-wide · edit at top</div></div>
+          <div class="stat"><span class="overline">Demo length</span><div class="v">${STATE.demoLen} ${STATE.demoLen===1?'hour':'hours'}</div>
+            <div class="daylight-note">Daylight this day: <b>${fmtClock(day.sunrise)} – ${fmtClock(day.sunset)}</b></div></div>
+        </div>
+
+        <div class="grid-head">
+          <span></span><span class="caption l">Time</span>
+          <span class="caption">Wind</span><span class="caption">Wave</span>
+          <span class="caption">Rain</span><span class="caption">Visibility</span>
+        </div>
+        ${rows}
+      </div>
+    </div>`;
+}
+function renderAll(){renderEditor();renderHorizon();renderDetail();}
+
+/* ---------- mutations ---------- */
+function setStart(v){STATE.startHour=Math.max(DEFAULT_START,Math.min(v,STATE.endHour-1));renderAll();}
+function setEnd(v){STATE.endHour=Math.min(DEFAULT_END,Math.max(v,STATE.startHour+1));renderAll();}
+function setDemo(v){STATE.demoLen=Math.max(1,v);renderAll();}
+function selectDay(i){STATE.selected=i;renderHorizon();renderDetail();}
+function openModal(){STATE.modal=true;renderOverlays();}
+function openDrawer(){STATE.drawer=true;renderOverlays();}
+function toggleAcc(){STATE.acc=!STATE.acc;renderEditor();}
+function closeOverlays(skipRender){STATE.modal=false;STATE.drawer=false;if(!skipRender)renderOverlays();}
+
+/* switcher */
+document.getElementById('seg').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-v]');if(!b)return;
+  STATE.variant=b.dataset.v;STATE.acc=false;STATE.modal=false;STATE.drawer=false;
+  [...document.querySelectorAll('#seg button')].forEach(x=>x.classList.toggle('on',x===b));
+  renderEditor();
+});
+
+renderAll();
+</script>
+</body>
+</html>

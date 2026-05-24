@@ -1,6 +1,6 @@
 // The drill-down that opens below the line for the selected day. Leads with the day's badge as
-// a big word (the answer), states the two windows, flags missing data, then lays out every
-// daylight hour so Tara can see exactly where conditions turn.
+// a big word (the answer), flags missing data, then lays out every daylight hour so Tara can
+// see exactly where conditions turn.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -11,15 +11,14 @@ import Alert from '@mui/material/Alert';
 import { Status } from '../../scoring/status';
 import type { ScoredDay } from '../../scoring/scoring';
 import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
-import { WindowSummary } from './WindowSummary';
 import { HourRow, HOUR_GRID } from './HourRow';
 import { formatDayLabel } from '../format';
 
 // Plain-language read of the day's badge — describes status, never recommends a window.
 const SUMMARY: Record<Status, string> = {
-  [Status.Go]: 'A full-length demo window holds up — all factors clear.',
-  [Status.Caution]: 'A demo-length window is achievable, but conditions run iffy in it.',
-  [Status.NoGo]: 'No demo-length window stays in bounds this day.',
+  [Status.Go]: 'A full demo window is available. Every factor stays clear.',
+  [Status.Caution]: 'A demo window is achievable, but one or more hours run close to the no-go thresholds.',
+  [Status.NoGo]: 'No demo window stays clear of the no-go thresholds this day.',
 };
 
 export function DayDetail({ day }: { day: ScoredDay }) {
@@ -27,7 +26,7 @@ export function DayDetail({ day }: { day: ScoredDay }) {
   const badgeColor = `${STATUS_TO_PALETTE[day.badge]}.main`;
 
   return (
-    <Box component="section">
+    <Box component="section" aria-label="Selected day detail">
       <Card>
         <Box sx={{ height: 5, bgcolor: badgeColor }} />
         <CardContent>
@@ -43,8 +42,6 @@ export function DayDetail({ day }: { day: ScoredDay }) {
                 {SUMMARY[day.badge]}
               </Typography>
             </Box>
-
-            <WindowSummary day={day} />
 
             {!day.complete && (
               <Alert severity="warning" variant="outlined">

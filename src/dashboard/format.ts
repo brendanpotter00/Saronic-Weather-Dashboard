@@ -50,11 +50,18 @@ export function formatHourLabel(iso: string): string {
   return `${h12} ${ap}`;
 }
 
-// "6:13 AM" — precise, for sunrise/sunset.
+// "6:13 AM" — precise, for the exact sunrise/sunset times in the window control's daylight line.
 export function formatClockTime(iso: string): string {
   const { hour, minute } = clockParts(iso);
   const { h12, ap } = meridiem(hour);
   return `${h12}:${String(minute).padStart(2, '0')} ${ap}`;
+}
+
+// "6 AM", "8 PM" — a bare clock hour from an integer 0–23, for the available-window bounds and
+// its picker (no ISO string, no minutes).
+export function formatHourOfDay(hour: number): string {
+  const { h12, ap } = meridiem(hour);
+  return `${h12} ${ap}`;
 }
 
 // Visibility flattens out at the top of the API's range, so anything at/above this reads as a

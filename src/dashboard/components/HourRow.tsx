@@ -23,6 +23,8 @@ export function HourRow({ hour }: { hour: ScoredHour }) {
         py: 0.75,
         borderTop: 1,
         borderColor: 'divider',
+        // Out-of-window hours stay readable but recede — they don't count toward a demo window.
+        opacity: hour.isInWindow ? 1 : 0.45,
       }}
     >
       <Box sx={{ height: 20, borderRadius: 0.5, bgcolor: `${STATUS_TO_PALETTE[hour.status]}.main` }} />

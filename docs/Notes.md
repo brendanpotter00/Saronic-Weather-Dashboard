@@ -11,7 +11,7 @@ Clarifying Questions:
 7. Are there any other secondary weather factors we need to consider? - Not right now. These are the main factors.
 8. Do you like having contextual knowledge of other weather factors? Like temp? - For the 10 sec no-go decision, no. I want a simple quick dashboard. Later maybe temp for audience comfort, but out of scope right now.
 9. When there is a block of time within bounds, but the rest of the day is outside of the bounds, how should I handle it? - Tara only cares if there is a valid time window, then she can dive into the details of which contigious hours are valid
-10. What is the visibility threshold? - 10 miles is ideal and less than 3
+10. What is the visibility threshold? - 10 miles is ideal and less than 3 is a no go 
 
 Key Insights: 
 1. We should exclude night forecast. Only daylight hours with 6 hours being the demo time window interval
@@ -62,9 +62,9 @@ Rough Plan:
 1. Prototype design - 
 2. Get agent docs established - api context, root agent file - 
 3. Establish api contracts and endpoints -
-4. Implement business logic 
-5. Establish the layout 
-6. Implement 10 day overview
+4. Implement business logic -
+5. Establish the layout -
+6. Implement 10 day overview -
 7. Implement save time window
 8. Implement flexible thresholds 
 9. Implement local storage 
