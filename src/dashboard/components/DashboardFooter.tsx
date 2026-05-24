@@ -1,9 +1,10 @@
-// Collapsible footer reference. Collapsed by default so it stays out of the way of the
-// 10-second glance; expanding reveals the two references side-by-side — the Key (StatusLegend,
-// what the colours mean) and the Source (Attribution, where the numbers come from), with a
-// hairline rule between them on desktop, stacked on phones. The summary is a white outlined bar
-// with a hover state so it reads clearly as a clickable toggle against the off-white canvas;
-// the chevron is pulled in next to the title rather than floating at the far edge.
+// Collapsible footer reference. The whole thing is one white, outlined card so the surface
+// persists behind both states: collapsed it's a slim white bar (just the summary); expanded the
+// white extends down behind the two references — the Key (StatusLegend, what the colours mean)
+// and the Source (Attribution, where the numbers come from), side-by-side with a hairline rule
+// between them on desktop, stacked on phones. Collapsed by default to stay out of the 10-second
+// glance; the summary darkens on hover so it reads clearly as a clickable toggle, and the chevron
+// is pulled in next to the title rather than floating at the far edge.
 
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -28,29 +29,30 @@ export function DashboardFooter({ site, marineSite, marineAvailable }: Dashboard
       <Accordion
         disableGutters
         elevation={0}
-        square
-        // Flat container: no shadow, transparent, and drop the default top hairline so the
-        // white summary bar below is the only thing the eye reads as the footer control.
-        sx={{ bgcolor: 'transparent', '&::before': { display: 'none' } }}
+        // The card itself: white surface + hairline border + rounded corners, so the white
+        // persists behind the details when expanded. overflow:hidden clips the summary's hover
+        // highlight to the rounded corners. Drop MUI's default top pseudo-rule.
+        sx={{
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 1,
+          overflow: 'hidden',
+          '&::before': { display: 'none' },
+        }}
       >
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls="footer-reference-content"
           id="footer-reference-header"
-          // A white, outlined, rounded bar that lifts on hover — an obvious "click me" affordance
-          // against the #fafafa canvas. flexGrow:0 on the content stops MUI from shoving the
-          // chevron to the far right, so title + chevron stay together as one tappable group.
+          // flexGrow:0 stops MUI from ballooning the title and shoving the chevron to the far
+          // edge; justify-content keeps the title + chevron group pinned left as one tappable
+          // unit. Hover darkens the row so the clickable region is obvious.
           sx={(theme) => ({
             px: 2,
-            borderRadius: 1,
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            // Pin the title + chevron group to the left edge (flexGrow:0 alone leaves them
-            // centred in the full-width bar).
             justifyContent: 'flex-start',
-            transition: theme.transitions.create(['background-color', 'border-color']),
-            '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary' },
+            transition: theme.transitions.create('background-color'),
+            '&:hover': { bgcolor: 'action.hover' },
             '& .MuiAccordionSummary-content': { flexGrow: 0, mr: 0.5 },
           })}
         >
@@ -58,7 +60,7 @@ export function DashboardFooter({ site, marineSite, marineAvailable }: Dashboard
             Status Key &amp; Sources
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ px: 0, pt: 2 }}>
+        <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
           <Box
             sx={{
               display: 'grid',
