@@ -56,9 +56,9 @@ export interface CombinedHour {
 
 export interface DayForecast {
   date: string; // calendar day key "YYYY-MM-DD" (a day label, not an instant)
-  sunriseTime: string; // ISO 8601 with site UTC offset
-  sunsetTime: string; // ISO 8601 with site UTC offset
-  daylightDurationSeconds: number; // seconds
+  sunriseTime: string | null; // ISO 8601 with site UTC offset (null if the API omitted it)
+  sunsetTime: string | null; // ISO 8601 with site UTC offset (null if the API omitted it)
+  daylightDurationSeconds: number | null; // seconds (null if the API omitted it)
   hours: CombinedHour[]; // daylight-only, chronological
 }
 

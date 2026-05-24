@@ -42,12 +42,14 @@ export function buildCombinedForecast(
   for (let i = 0; i < h.time.length; i++) {
     if (h.is_day[i] !== 1) continue; // daylight only — demos are daytime
     const rawTime = h.time[i]; // raw Open-Meteo local string — the join key
+    const time = localTimeToSiteIso(rawTime, timeZone);
+    if (time === null) continue; // missing/unparseable timestamp — can't place this hour
     const windSpeedKn = h.wind_speed_10m[i] ?? null;
     const waveHeightFt = waveByTime.get(rawTime) ?? null; // null when marine has no match
     const precipitationIn = millimetersToInches(h.precipitation[i]);
     const visibilityMiles = metersToMiles(h.visibility[i]);
     hours.push({
-      time: localTimeToSiteIso(rawTime, timeZone),
+      time,
       windSpeedKn,
       waveHeightFt,
       precipitationIn,
@@ -73,11 +75,14 @@ export function buildCombinedForecast(
 
   // 3) Drive day order/metadata from daily.time (authoritative 10-day list).
   const d = forecast.daily;
+  // Day metadata fields are nullable: a short/absent daily array (or a polar
+  // sunrise/sunset) yields a missing value at an index — carry that through as null
+  // rather than fabricating a timestamp or throwing.
   const days: DayForecast[] = d.time.map((date, i) => ({
     date,
     sunriseTime: localTimeToSiteIso(d.sunrise[i], timeZone),
     sunsetTime: localTimeToSiteIso(d.sunset[i], timeZone),
-    daylightDurationSeconds: d.daylight_duration[i],
+    daylightDurationSeconds: d.daylight_duration[i] ?? null,
     hours: hoursByDate.get(date) ?? [],
   }));
 

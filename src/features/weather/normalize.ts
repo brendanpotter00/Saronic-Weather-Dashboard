@@ -15,7 +15,9 @@ const MINUTE_PRECISION_LENGTH = 16;
  * absence would be invisible. Null is carried through and treated as fail-safe no-go.
  */
 export function metersToMiles(meters: number | null | undefined): number | null {
-  if (meters == null || Number.isNaN(meters)) return null;
+  // `typeof !== 'number'` (not just `== null`) so a stray string/boolean from a
+  // malformed JSON body becomes null instead of `"20000" / 1609.344 === NaN`.
+  if (typeof meters !== 'number' || Number.isNaN(meters)) return null;
   return meters / METERS_PER_MILE;
 }
 
@@ -27,7 +29,9 @@ export function metersToMiles(meters: number | null | undefined): number | null 
  * read as "no rain" = a GO, the exact wrong-greenlight this tool exists to prevent.
  */
 export function millimetersToInches(mm: number | null | undefined): number | null {
-  if (mm == null || Number.isNaN(mm)) return null;
+  // Same fail-safe as metersToMiles: a non-number (e.g. `true`) must not slip through
+  // as `true / 25.4 === 0.039`, a fabricated tiny-rain reading.
+  if (typeof mm !== 'number' || Number.isNaN(mm)) return null;
   return mm / MILLIMETERS_PER_INCH;
 }
 
@@ -39,8 +43,15 @@ export function millimetersToInches(mm: number | null | undefined): number | nul
  * browser's timezone and show the wrong wall-clock time for any non-Central user.
  * Prefer `localTimeToSiteIso` at call sites — it derives the *correct* offset for the
  * date (DST-aware); this primitive just stitches a known offset on.
+ *
+ * Returns `null` for a missing time string (a short/absent `daily.sunrise` array yields
+ * `undefined` at some index) rather than fabricating `"undefined-05:00"` or throwing.
  */
-export function toSiteIso(localTime: string, utcOffsetSeconds: number): string {
+export function toSiteIso(
+  localTime: string | null | undefined,
+  utcOffsetSeconds: number,
+): string | null {
+  if (!localTime) return null;
   // Open-Meteo gives minute precision ("...T06:00", length 16); add seconds.
   const withSeconds =
     localTime.length === MINUTE_PRECISION_LENGTH ? `${localTime}:00` : localTime;
@@ -77,8 +88,17 @@ export function offsetSecondsForLocalTime(localTime: string, timeZone: string): 
   return offsetSecondsAtInstant(trueInstant, timeZone);
 }
 
-/** DST-aware sibling of `toSiteIso`: appends the offset correct for this date. */
-export function localTimeToSiteIso(localTime: string, timeZone: string): string {
+/**
+ * DST-aware sibling of `toSiteIso`: appends the offset correct for this date.
+ * Returns `null` for a missing time string — and short-circuits *before*
+ * `offsetSecondsForLocalTime`, which would otherwise `Date.parse("undefinedZ") -> NaN`
+ * and throw a `RangeError` inside `Intl.DateTimeFormat.formatToParts(new Date(NaN))`.
+ */
+export function localTimeToSiteIso(
+  localTime: string | null | undefined,
+  timeZone: string,
+): string | null {
+  if (!localTime) return null;
   return toSiteIso(localTime, offsetSecondsForLocalTime(localTime, timeZone));
 }
 

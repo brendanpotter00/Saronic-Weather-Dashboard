@@ -45,11 +45,27 @@ function marineUrl(site: Site): string {
 // (an error-as-200, a partial response). fetchBaseQuery only flags non-2xx, so we
 // guard the shape before the `as` cast — otherwise buildCombinedForecast dereferences
 // `.hourly`/`.daily` and the whole query throws instead of erroring/degrading cleanly.
+// The guard must cover EVERY array the consumer indexes, not just `time`: a body with
+// `hourly.time` present but `is_day`/`sunrise`/etc. absent would still pass a `time`-only
+// check and then throw on `h.is_day[i]` / `d.sunrise[i]` deep inside buildCombinedForecast.
 function isForecastResponse(data: unknown): data is ForecastResponse {
   const d = data as ForecastResponse | null;
-  return !!d && Array.isArray(d.hourly?.time) && Array.isArray(d.daily?.time);
+  return (
+    !!d &&
+    Array.isArray(d.hourly?.time) &&
+    Array.isArray(d.hourly?.is_day) &&
+    Array.isArray(d.hourly?.wind_speed_10m) &&
+    Array.isArray(d.hourly?.precipitation) &&
+    Array.isArray(d.hourly?.visibility) &&
+    Array.isArray(d.daily?.time) &&
+    Array.isArray(d.daily?.sunrise) &&
+    Array.isArray(d.daily?.sunset) &&
+    Array.isArray(d.daily?.daylight_duration)
+  );
 }
 
+// Marine only ever indexes hourly.time + hourly.wave_height, so those two arrays are
+// the complete set of fields the consumer touches.
 function isMarineResponse(data: unknown): data is MarineResponse {
   const d = data as MarineResponse | null;
   return !!d && Array.isArray(d.hourly?.time) && Array.isArray(d.hourly?.wave_height);
@@ -61,21 +77,18 @@ export const weatherApi = createApi({
   // hosts, which override this. We keep fetchBaseQuery for its normalized error
   // shape and to reuse RTK's fetch handling.
   baseQuery: fetchBaseQuery({ baseUrl: '/' }),
-  // On (re)mount — including a fresh page load rehydrated from localStorage (see
-  // app/store.ts) — refetch only if the cached data is older than the TTL. Within
-  // the window, serve the cache and don't re-hit the rate-limited free tier.
+  // On (re)mount, refetch only if the cached data is older than the TTL. Within the
+  // window, serve the in-memory cache and don't re-hit the rate-limited free tier.
   refetchOnMountOrArgChange: CACHE_TTL_SECONDS,
   endpoints: (build) => ({
     // One endpoint fires BOTH upstream fetches in parallel and joins them, so
     // the UI gets a single model, a single loading/error state, and one cache.
-    getCombinedForecast: build.query<CombinedForecast, Site | void>({
+    // No-arg: there's a single fixed site (multi-city is out of scope), so the
+    // endpoint reads DEFAULT_SITE directly and the cache needs no custom key.
+    getCombinedForecast: build.query<CombinedForecast, void>({
       keepUnusedDataFor: CACHE_TTL_SECONDS, // retain ~10 min after last subscriber unmounts
-      // The arg is `Site | void` but the fetched site is `arg ?? DEFAULT_SITE`. Key the
-      // cache on the resolved site id so a no-arg call and an explicit-DEFAULT_SITE call
-      // share one entry (and one set of API hits) instead of fragmenting the cache.
-      serializeQueryArgs: ({ queryArgs }) => (queryArgs ?? DEFAULT_SITE).id,
-      async queryFn(arg, _api, _extra, baseQuery) {
-        const site = arg ?? DEFAULT_SITE;
+      async queryFn(_arg, _api, _extra, baseQuery) {
+        const site = DEFAULT_SITE;
 
         const [forecastRes, marineRes] = await Promise.all([
           baseQuery(forecastUrl(site)),
