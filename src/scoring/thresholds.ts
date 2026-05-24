@@ -25,6 +25,7 @@ export const VISIBILITY_CAUTION_FRACTION = 0.3;
 export const VISIBILITY_GO_MILES =
   VISIBILITY_NOGO_MILES / VISIBILITY_CAUTION_FRACTION; // 10 — at/above = go
 
-// Precipitation has no caution tier: any measurable rain is a no-go (optics demos); the
-// trace epsilon absorbs float noise so a normalized zero never reads as rain.
-export const PRECIP_TRACE_IN = 0.002;
+// Precipitation intentionally has NO threshold constant and NO caution tier: any rain at all
+// is a no-go (optics demos), so the tier compares `> 0` directly. `millimetersToInches` maps a
+// real 0 mm to exactly 0 and a missing reading to null, so no epsilon is needed — and any
+// epsilon would only pardon real rain, the exact wrong-greenlight this tool exists to prevent.

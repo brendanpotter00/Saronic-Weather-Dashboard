@@ -11,7 +11,6 @@ import {
   WAVE_CAUTION_FT,
   VISIBILITY_NOGO_MILES,
   VISIBILITY_GO_MILES,
-  PRECIP_TRACE_IN,
 } from './thresholds';
 
 // Internal severity scale: worst-factor-wins is a max over these tiers. Kept numeric (not the
@@ -49,7 +48,7 @@ export function waveTier(waveHeightFt: number | null): Tier {
 
 export function precipitationTier(precipitationIn: number | null): Tier {
   if (precipitationIn === null) return TIER_NOGO;
-  return precipitationIn > PRECIP_TRACE_IN ? TIER_NOGO : TIER_GO; // no caution tier
+  return precipitationIn > 0 ? TIER_NOGO : TIER_GO; // no caution tier
 }
 
 export function visibilityTier(visibilityMiles: number | null): Tier {

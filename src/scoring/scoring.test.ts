@@ -70,9 +70,10 @@ describe('scoreHour — factor boundaries (pins the derived caution thresholds)'
     expect(scoreHour(mkHour(7, { visibilityMiles: 2.9 })).visibility.status).toBe(Status.NoGo);
   });
 
-  it('precipitation: only a trace is GO, any measurable rain is NO-GO (no caution tier)', () => {
+  it('precipitation: only exactly zero is GO; any rain (even a trace) is NO-GO (no caution tier)', () => {
     expect(scoreHour(mkHour(7, { precipitationIn: 0 })).precipitation.status).toBe(Status.Go);
-    expect(scoreHour(mkHour(7, { precipitationIn: 0.002 })).precipitation.status).toBe(Status.Go); // == trace, not over
+    expect(scoreHour(mkHour(7, { precipitationIn: 0.0001 })).precipitation.status).toBe(Status.NoGo); // boundary pinned at zero
+    expect(scoreHour(mkHour(7, { precipitationIn: 0.002 })).precipitation.status).toBe(Status.NoGo);
     expect(scoreHour(mkHour(7, { precipitationIn: 0.01 })).precipitation.status).toBe(Status.NoGo);
   });
 });
