@@ -140,4 +140,3 @@ for writing thorough, honest `RESPONSES.md` answers from real history instead of
 - Working app + `RESPONSES.md` (two questions) in the repo root.
 - README with setup instructions.
 - Public GitHub repo.
-- Email the repo link to **amy.parsons@saronic.com** and **Grant.Sullens@saronic.com**.
