@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- pixel cloud: white fill enclosed by a dark border, two-bump top, flat base -->
+  <g fill="#ffffff">
+    <rect x="8" y="7" width="3" height="1" />
+    <rect x="4" y="8" width="2" height="1" />
+    <rect x="7" y="8" width="6" height="1" />
+    <rect x="3" y="9" width="11" height="1" />
+  </g>
+  <g fill="#1b2733">
+    <rect x="8" y="6" width="3" height="1" />
+    <rect x="4" y="7" width="2" height="1" />
+    <rect x="7" y="7" width="1" height="1" />
+    <rect x="11" y="7" width="2" height="1" />
+    <rect x="3" y="8" width="1" height="1" />
+    <rect x="6" y="8" width="1" height="1" />
+    <rect x="13" y="8" width="1" height="1" />
+    <rect x="2" y="9" width="1" height="1" />
+    <rect x="14" y="9" width="1" height="1" />
+    <rect x="2" y="10" width="13" height="1" />
+  </g>
+</svg>
