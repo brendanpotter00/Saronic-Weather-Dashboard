@@ -66,8 +66,10 @@ Always send these params: `timezone=America/Chicago`, `wind_speed_unit=kn`,
 - **Join by timestamp**, matching the ISO `time[]` string (don't assume equal array lengths).
 - **Marine grid ≠ forecast grid** — the marine request snaps to the nearest ocean cell; both
   echo their resolved lat/lon. Expected, not a bug.
-- **Cache responses ~10 minutes** so repeated morning checks don't re-hit the rate-limited
-  free tier.
+- **Cache responses ~10 minutes in-session** so repeated morning checks within a session
+  don't re-hit the rate-limited free tier. RTK Query's cache is in-memory (TTL via
+  `refetchOnMountOrArgChange` + `keepUnusedDataFor`); a hard page reload starts cold and
+  refetches — acceptable for a single user well under the free-tier limit.
 
 → Full contract, response shapes, and gotchas: **`docs/API-Endpoints.md`**.
 
@@ -94,7 +96,7 @@ Functional:
 Non-functional:
 - A decision should be possible in ~10 seconds.
 - Page should load in < 1s.
-- Cache data ~10 min for fast subsequent loads.
+- Cache data ~10 min in-session (in-memory) for fast subsequent loads; a hard reload refetches.
 
 ## Scope boundaries (out of scope)
 
