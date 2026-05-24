@@ -10,7 +10,7 @@ import Typography from '@mui/material/Typography';
 import type { ScoredDay } from '../../scoring/scoring';
 import { formatClockTime, MISSING_DISPLAY } from '../format';
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ flex: 1, p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, minWidth: 0 }}>
       <Typography variant="overline" color="text.secondary" component="div">
@@ -19,11 +19,6 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
       <Typography variant="h3" component="div" sx={{ my: 0.25 }}>
         {value}
       </Typography>
-      {hint && (
-        <Typography variant="caption" color="text.secondary">
-          {hint}
-        </Typography>
-      )}
     </Box>
   );
 }

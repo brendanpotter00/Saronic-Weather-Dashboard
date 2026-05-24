@@ -48,7 +48,6 @@ export interface ScoredDay {
   // data layer so the UI surfaces the span without re-deriving it from raw hours.
   sunriseTime: string | null; // pass-through from DayForecast (ISO 8601 with site offset)
   sunsetTime: string | null; // pass-through from DayForecast (ISO 8601 with site offset)
-  daylightDurationSeconds: number | null; // pass-through; UI formats it, the value stays a number
   demoWindowHours: number; // = DEMO_WINDOW_HOURS, echoed so the UI states the requirement without importing config/app.ts
   hours: ScoredHour[]; // all daylight hours, scored (feeds the hourly drill-down)
   badge: Status; // best ACHIEVABLE status across contiguous demo-length windows; NoGo if none
@@ -141,7 +140,6 @@ export function scoreDay(day: DayForecast): ScoredDay {
     date: day.date,
     sunriseTime: day.sunriseTime,
     sunsetTime: day.sunsetTime,
-    daylightDurationSeconds: day.daylightDurationSeconds,
     demoWindowHours: DEMO_WINDOW_HOURS,
     hours,
     badge,

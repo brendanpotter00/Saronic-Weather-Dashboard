@@ -168,17 +168,15 @@ describe('scoreDay — contiguity by timestamp, not array index', () => {
 });
 
 describe('scoreDay — daylight-window pass-through (the "possible window" vs the demo window)', () => {
-  it('echoes sunrise/sunset/daylight duration straight through from the source day', () => {
+  it('echoes sunrise/sunset straight through from the source day', () => {
     const day = scoreDay(
       mkDay(goHours(7, 6), {
         sunriseTime: iso(6),
         sunsetTime: iso(19),
-        daylightDurationSeconds: 46800,
       }),
     );
     expect(day.sunriseTime).toBe(iso(6));
     expect(day.sunsetTime).toBe(iso(19));
-    expect(day.daylightDurationSeconds).toBe(46800);
   });
 
   it('echoes the demo-window requirement (DEMO_WINDOW_HOURS) so the UI need not import config', () => {
@@ -187,11 +185,10 @@ describe('scoreDay — daylight-window pass-through (the "possible window" vs th
 
   it('passes a null daylight span through unchanged (incomplete metadata)', () => {
     const day = scoreDay(
-      mkDay(goHours(7, 6), { sunriseTime: null, sunsetTime: null, daylightDurationSeconds: null }),
+      mkDay(goHours(7, 6), { sunriseTime: null, sunsetTime: null }),
     );
     expect(day.sunriseTime).toBeNull();
     expect(day.sunsetTime).toBeNull();
-    expect(day.daylightDurationSeconds).toBeNull();
   });
 });
 

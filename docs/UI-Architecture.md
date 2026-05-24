@@ -85,13 +85,12 @@ Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
 
 ## One cross-layer change this work made
 
-`ScoredDay` was extended (in `src/scoring/scoring.ts`) to pass through `sunriseTime`,
-`sunsetTime`, `daylightDurationSeconds`, and to echo `demoWindowHours = DEMO_WINDOW_HOURS`. This
-keeps the daylight-window math out of the UI (the "shape data at the lowest level" rule) — the
-detail renders the sunrise→sunset span and the demo length straight from these fields instead of
-computing them from raw hours. (`daylightDurationSeconds` is threaded through and ready, but not
-currently surfaced after the demo-length move to `WindowSummary` — a seam for re-adding a
-daylight-duration line.)
+`ScoredDay` was extended (in `src/scoring/scoring.ts`) to pass through `sunriseTime` and
+`sunsetTime`, and to echo `demoWindowHours = DEMO_WINDOW_HOURS`. This keeps the daylight-window
+math out of the UI (the "shape data at the lowest level" rule) — the detail renders the
+sunrise→sunset span and the demo length straight from these fields instead of computing them from
+raw hours. (`daylightDurationSeconds` stays on `DayForecast`, where the data layer uses it in the
+day-level `complete` gate, but it is not carried onto `ScoredDay` — nothing in the UI renders it.)
 
 ## In scope (built)
 
