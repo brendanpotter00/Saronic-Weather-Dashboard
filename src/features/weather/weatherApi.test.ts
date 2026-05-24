@@ -106,6 +106,9 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
 
     expect(result.isError).toBe(true);
     expect(result.status).toBe('rejected');
+    // The real upstream status propagates (forecastRes.error branch) — NOT remapped to
+    // CUSTOM_ERROR, which is reserved for a 200-but-malformed body.
+    expect(errorStatus(result.error)).toBe(500);
     expect(result.data).toBeUndefined();
   });
 
@@ -158,6 +161,36 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     expect(result.data?.marineAvailable).toBe(false);
     expect(result.data?.marineSite).toBeNull();
     expect(result.data?.days[0].hours).toHaveLength(2);
+  });
+
+  it('fails safe when a forecast hourly array is shorter than time[] (parallel-array mismatch)', async () => {
+    // CLAUDE.md warns "don't assume equal array lengths." isForecastResponse only checks
+    // Array.isArray, so a 200 body with wind_speed_10m shorter than time[] passes the guard.
+    // The missing index must read as a no-go (null factor -> complete:false), never a GO.
+    const mismatchedForecast: ForecastResponse = {
+      ...validForecast,
+      hourly: {
+        time: ['2026-05-23T06:00', '2026-05-23T07:00'],
+        wind_speed_10m: [8], // SHORTER than time[] — the 07:00 hour has no wind reading
+        precipitation: [0, 0],
+        visibility: [20000, 21000],
+        is_day: [1, 1],
+      },
+    };
+    stubFetch({
+      forecast: () => jsonResponse(mismatchedForecast),
+      marine: () => jsonResponse(validMarine), // waves present for both hours
+    });
+
+    const store = makeStore();
+    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+
+    expect(result.isSuccess).toBe(true);
+    const hours = result.data!.days[0].hours;
+    expect(hours).toHaveLength(2);
+    expect(hours[0].complete).toBe(true); // 06:00 has all four factors
+    expect(hours[1].windSpeedKn).toBeNull(); // 07:00 wind index missing -> finiteOrNull -> null
+    expect(hours[1].complete).toBe(false); // missing factor -> cannot be a GO
   });
 
   it('degrades to CUSTOM_ERROR (not an uncaught throw) for an invalid-but-nonempty timezone', async () => {
