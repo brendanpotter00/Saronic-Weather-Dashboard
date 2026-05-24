@@ -57,15 +57,6 @@ export function formatClockTime(iso: string): string {
   return `${h12}:${String(minute).padStart(2, '0')} ${ap}`;
 }
 
-// "11h 30m" daylight span from a duration in seconds; drops the minutes when they're zero.
-export function formatDuration(seconds: number | null): string {
-  if (seconds === null) return MISSING_DISPLAY;
-  const totalMinutes = Math.round(seconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
-}
-
 // Visibility flattens out at the top of the API's range, so anything at/above this reads as a
 // ceiling ("15+") rather than a noisy exact mile count that implies false precision.
 const VISIBILITY_DISPLAY_CAP_MILES = 15;

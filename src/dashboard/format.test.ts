@@ -4,7 +4,6 @@ import {
   formatDayLabel,
   formatHourLabel,
   formatClockTime,
-  formatDuration,
   MISSING_DISPLAY,
 } from './format';
 import { Factor } from '../scoring/status';
@@ -57,11 +56,5 @@ describe('date & time formatting (offset-aware, no UTC drift)', () => {
   it('formatClockTime keeps minutes for sunrise/sunset', () => {
     expect(formatClockTime('2026-05-23T06:13:00-05:00')).toBe('6:13 AM');
     expect(formatClockTime('2026-05-23T19:42:00-05:00')).toBe('7:42 PM');
-  });
-
-  it('formatDuration drops a zero minute and handles missing duration', () => {
-    expect(formatDuration(46800)).toBe('13h'); // 13h 0m
-    expect(formatDuration(41400)).toBe('11h 30m');
-    expect(formatDuration(null)).toBe(MISSING_DISPLAY);
   });
 });

@@ -56,7 +56,7 @@ export function Dashboard() {
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
       <Stack spacing={{ xs: 2, md: 3 }}>
-        <DashboardHeader demoWindowHours={scored.days[0].demoWindowHours} />
+        <DashboardHeader />
         <PinnedWindowSlot />
         {!scored.marineAvailable && (
           <Alert severity="warning">
