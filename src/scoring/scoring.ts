@@ -50,6 +50,8 @@ export interface ScoredDay {
 }
 
 export interface ScoredForecast {
+  site: CombinedForecast['site']; // pass-through: resolved forecast grid cell
+  marineSite: CombinedForecast['marineSite']; // pass-through: resolved marine cell (different grid — surfaced, not hidden)
   timezone: string; // pass-through
   marineAvailable: boolean; // pass-through -> drives the UI "wave data unavailable" banner
   days: ScoredDay[];
@@ -139,6 +141,8 @@ export function scoreDay(day: DayForecast): ScoredDay {
 
 export function scoreForecast(forecast: CombinedForecast): ScoredForecast {
   return {
+    site: forecast.site,
+    marineSite: forecast.marineSite,
     timezone: forecast.timezone,
     marineAvailable: forecast.marineAvailable,
     days: forecast.days.map(scoreDay),

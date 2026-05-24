@@ -178,6 +178,8 @@ describe('scoreForecast — whole-tree enrichment and marine-down fail-safe', ()
     const scored = scoreForecast(forecast);
     expect(scored.timezone).toBe('America/Chicago');
     expect(scored.marineAvailable).toBe(true);
+    expect(scored.site).toEqual({ latitude: 30.37, longitude: -89.1 });
+    expect(scored.marineSite).toEqual({ latitude: 30.29, longitude: -89.12 });
     expect(scored.days[0].badge).toBe(Status.Go);
   });
 
@@ -192,6 +194,8 @@ describe('scoreForecast — whole-tree enrichment and marine-down fail-safe', ()
     };
     const scored = scoreForecast(forecast);
     expect(scored.marineAvailable).toBe(false);
+    expect(scored.marineSite).toBeNull(); // surfaced even when marine is down
+    expect(scored.site).toEqual({ latitude: 30.37, longitude: -89.1 });
     expect(scored.days.every((d) => d.badge === Status.NoGo && !d.isCandidate)).toBe(true);
   });
 });
