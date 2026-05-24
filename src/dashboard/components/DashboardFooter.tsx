@@ -1,9 +1,9 @@
 // Collapsible footer reference. Collapsed by default so it stays out of the way of the
 // 10-second glance; expanding reveals the two references side-by-side — the Key (StatusLegend,
 // what the colours mean) and the Source (Attribution, where the numbers come from), with a
-// hairline rule between them on desktop, stacked on phones. Pure layout; each child owns its
-// own content and pulls every value from the theme. Flat (no shadow/border) to keep the
-// monochrome look — only the top divider separates it from the day detail above.
+// hairline rule between them on desktop, stacked on phones. The summary is a white outlined bar
+// with a hover state so it reads clearly as a clickable toggle against the off-white canvas;
+// the chevron is pulled in next to the title rather than floating at the far edge.
 
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -25,26 +25,40 @@ interface DashboardFooterProps {
 export function DashboardFooter({ site, marineSite, marineAvailable }: DashboardFooterProps) {
   return (
     <Box component="footer">
-      <Divider />
       <Accordion
         disableGutters
         elevation={0}
         square
-        // Flat: transparent surface, no shadow, and drop the default top hairline (the
-        // Divider above already does that job) so the summary reads as a plain section header.
+        // Flat container: no shadow, transparent, and drop the default top hairline so the
+        // white summary bar below is the only thing the eye reads as the footer control.
         sx={{ bgcolor: 'transparent', '&::before': { display: 'none' } }}
       >
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls="footer-reference-content"
           id="footer-reference-header"
-          sx={{ px: 0 }}
+          // A white, outlined, rounded bar that lifts on hover — an obvious "click me" affordance
+          // against the #fafafa canvas. flexGrow:0 on the content stops MUI from shoving the
+          // chevron to the far right, so title + chevron stay together as one tappable group.
+          sx={(theme) => ({
+            px: 2,
+            borderRadius: 1,
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            // Pin the title + chevron group to the left edge (flexGrow:0 alone leaves them
+            // centred in the full-width bar).
+            justifyContent: 'flex-start',
+            transition: theme.transitions.create(['background-color', 'border-color']),
+            '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary' },
+            '& .MuiAccordionSummary-content': { flexGrow: 0, mr: 0.5 },
+          })}
         >
-          <Typography variant="overline" color="text.secondary">
+          <Typography variant="overline" color="text.primary">
             Status Key &amp; Sources
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ px: 0 }}>
+        <AccordionDetails sx={{ px: 0, pt: 2 }}>
           <Box
             sx={{
               display: 'grid',
