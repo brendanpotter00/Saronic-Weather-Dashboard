@@ -45,13 +45,19 @@ function marineUrl(site: Site): string {
 // (an error-as-200, a partial response). fetchBaseQuery only flags non-2xx, so we
 // guard the shape before the `as` cast — otherwise buildCombinedForecast dereferences
 // `.hourly`/`.daily` and the whole query throws instead of erroring/degrading cleanly.
-// The guard must cover EVERY array the consumer indexes, not just `time`: a body with
+// The guard must cover EVERY field the consumer touches, not just `time`: a body with
 // `hourly.time` present but `is_day`/`sunrise`/etc. absent would still pass a `time`-only
 // check and then throw on `h.is_day[i]` / `d.sunrise[i]` deep inside buildCombinedForecast.
+// `timezone` is included because buildCombinedForecast feeds it into Intl.DateTimeFormat
+// to resolve each hour's UTC offset: a missing/empty zone would throw a RangeError (or,
+// if merely absent, silently default to the browser zone -> wrong offsets on every hour)
+// instead of the clean CUSTOM_ERROR this guard exists to produce.
 function isForecastResponse(data: unknown): data is ForecastResponse {
   const d = data as ForecastResponse | null;
   return (
     !!d &&
+    typeof d.timezone === 'string' &&
+    d.timezone.length > 0 &&
     Array.isArray(d.hourly?.time) &&
     Array.isArray(d.hourly?.is_day) &&
     Array.isArray(d.hourly?.wind_speed_10m) &&

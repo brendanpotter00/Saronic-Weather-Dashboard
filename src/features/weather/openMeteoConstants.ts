@@ -13,6 +13,10 @@ export const TIMEZONE = 'America/Chicago';
 // Only the variables the go/no-go read consumes — not every field the API
 // offers. is_day stays because it drives the daylight filter (demos are daytime).
 export const FORECAST_HOURLY = ['wind_speed_10m', 'precipitation', 'visibility', 'is_day'] as const;
+
+// Open-Meteo encodes hourly is_day as 1=day / 0=night (a provider fact). The data
+// layer keeps only is_day === IS_DAYLIGHT hours (demos are daytime).
+export const IS_DAYLIGHT = 1;
 export const FORECAST_DAILY = ['sunrise', 'sunset', 'daylight_duration'] as const;
 export const MARINE_HOURLY = ['wave_height'] as const;
 

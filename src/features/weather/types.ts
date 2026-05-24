@@ -60,6 +60,7 @@ export interface DayForecast {
   sunsetTime: string | null; // ISO 8601 with site UTC offset (null if the API omitted it)
   daylightDurationSeconds: number | null; // seconds (null if the API omitted it)
   hours: CombinedHour[]; // daylight-only, chronological
+  complete: boolean; // true only when the day has the metadata to evaluate a daylight window (sunrise/sunset/duration) AND ≥1 daylight hour; an incomplete day can never yield a valid window
 }
 
 export interface CombinedForecast {

@@ -5,7 +5,13 @@ import type {
   DayForecast,
   CombinedForecast,
 } from './types';
-import { metersToMiles, millimetersToInches, localTimeToSiteIso } from './normalize';
+import {
+  metersToMiles,
+  millimetersToInches,
+  localTimeToSiteIso,
+  finiteOrNull,
+} from './normalize';
+import { IS_DAYLIGHT } from './openMeteoConstants';
 
 // The local date key is the "YYYY-MM-DD" prefix of an ISO timestamp.
 const DATE_KEY_LENGTH = 10;
@@ -40,12 +46,15 @@ export function buildCombinedForecast(
   // 1) Fuse every daylight forecast hour with its wave height (matched by time).
   const hours: CombinedHour[] = [];
   for (let i = 0; i < h.time.length; i++) {
-    if (h.is_day[i] !== 1) continue; // daylight only — demos are daytime
+    if (h.is_day[i] !== IS_DAYLIGHT) continue; // daylight only — demos are daytime
     const rawTime = h.time[i]; // raw Open-Meteo local string — the join key
     const time = localTimeToSiteIso(rawTime, timeZone);
     if (time === null) continue; // missing/unparseable timestamp — can't place this hour
-    const windSpeedKn = h.wind_speed_10m[i] ?? null;
-    const waveHeightFt = waveByTime.get(rawTime) ?? null; // null when marine has no match
+    // Wind and wave go through the same fail-safe guard as the converted factors
+    // (visibility/precip): a NaN or stray string from a malformed-but-200 body becomes
+    // null, so it can't survive `?? null` and falsely make the hour `complete`.
+    const windSpeedKn = finiteOrNull(h.wind_speed_10m[i]);
+    const waveHeightFt = finiteOrNull(waveByTime.get(rawTime)); // null when marine has no match
     const precipitationIn = millimetersToInches(h.precipitation[i]);
     const visibilityMiles = metersToMiles(h.visibility[i]);
     hours.push({
@@ -78,13 +87,28 @@ export function buildCombinedForecast(
   // Day metadata fields are nullable: a short/absent daily array (or a polar
   // sunrise/sunset) yields a missing value at an index — carry that through as null
   // rather than fabricating a timestamp or throwing.
-  const days: DayForecast[] = d.time.map((date, i) => ({
-    date,
-    sunriseTime: localTimeToSiteIso(d.sunrise[i], timeZone),
-    sunsetTime: localTimeToSiteIso(d.sunset[i], timeZone),
-    daylightDurationSeconds: d.daylight_duration[i] ?? null,
-    hours: hoursByDate.get(date) ?? [],
-  }));
+  const days: DayForecast[] = d.time.map((date, i) => {
+    const sunriseTime = localTimeToSiteIso(d.sunrise[i], timeZone);
+    const sunsetTime = localTimeToSiteIso(d.sunset[i], timeZone);
+    const daylightDurationSeconds = d.daylight_duration[i] ?? null;
+    const hours = hoursByDate.get(date) ?? [];
+    return {
+      date,
+      sunriseTime,
+      sunsetTime,
+      daylightDurationSeconds,
+      hours,
+      // Day-level analog of CombinedHour.complete: computed here so consumers stay
+      // presentational and never re-derive the null checks. A day is usable only when
+      // it has the metadata to evaluate a daylight window (sunrise/sunset/duration) AND
+      // at least one daylight hour; otherwise the (future) window read can't run.
+      complete:
+        sunriseTime !== null &&
+        sunsetTime !== null &&
+        daylightDurationSeconds !== null &&
+        hours.length > 0,
+    };
+  });
 
   return {
     site: { latitude: forecast.latitude, longitude: forecast.longitude },
