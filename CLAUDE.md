@@ -120,6 +120,52 @@ npm run lint     # eslint
 - **Decisions matter more than polish** (per the brief). Keep code clean, readable, and
   maintainable over clever; prefer thoughtful go/no-go logic over calling every endpoint.
 
+## Code & naming conventions (the review bar)
+
+These are the standards code is held to here, distilled from review feedback. Run
+**`/brendan-review`** to check a diff against them. Apply them as you write, not just after.
+The two that carry the most weight are the first two below — **shape data at the lowest level
+so the frontend stays dumb**, and **group code by what belongs together**; the rest support them.
+
+- **Shape data at the lowest level you can; keep the frontend dumb. (core)** Push all
+  normalization and derivation as far *down* the stack as the context allows, so every layer
+  above just consumes. Lowest level doesn't always mean "at fetch time" — it means as low as
+  the known context permits. Here we *know* the only consumer is the dashboard, so the data
+  layer emits exactly what the UI renders (domain units, standardized timestamps, joined
+  records) and components stay purely presentational — no conversion, no reshaping, no unit
+  math. The lower you normalize, the less anything above has to know or repeat. (See
+  `normalize.ts` + `combineForecasts.ts`; conversions are explicit and unit-tested.)
+- **Group what belongs together; don't throw everything in one file. (core)** Cohesion first —
+  a module holds one coherent concern: domain in `config/sites.ts`, provider specifics
+  (URLs, request variables, unit flags) in `openMeteoConstants.ts`, conversions in
+  `normalize.ts`, the join in `combineForecasts.ts`. Split by *reason-to-change*: a value can
+  be *physically* an API parameter yet be *owned* by app config (`FORECAST_DAYS`,
+  `CACHE_TTL_SECONDS` in `config/app.ts`) because the reason it changes is a product decision.
+- **Names must describe their contents.** A file/variable name should tell you what's inside
+  without opening it. `site.ts` holding API URLs *and* site coords was wrong — it split into
+  `sites.ts` (domain) and `openMeteoConstants.ts` (provider). If you can't name it cleanly,
+  the module is probably doing two things.
+- **Don't stutter the folder, don't use junk-drawer names.** Inside `features/weather/`, it's
+  `types.ts`, not `weatherTypes.ts`. Avoid `helpers`/`utils`/`misc` — name a file for what it
+  does (`combineForecasts.ts`, `normalize.ts`).
+- **Units live in the name, not in a comment.** `windSpeedKn`, `waveHeightFt`,
+  `precipitationIn`, `visibilityMiles`, `daylightDurationSeconds`. A reader should know the
+  unit from the console/data alone. Keep the *value* a real number — never bake units into a
+  string (it breaks comparisons).
+- **Descriptive field names.** Say what the value *is*: `sunriseTime`/`sunsetTime`, not
+  `sunrise`/`sunset`.
+- **One standardized timestamp format.** All datetime fields use full ISO 8601 with the
+  site's UTC offset (e.g. `2026-05-23T06:00:00-05:00`) so the front end parses them
+  unambiguously. A calendar-day key (`YYYY-MM-DD`) is the one intentional exception.
+- **No magic strings/numbers.** Extract named constants (`WIND_SPEED_UNIT`, `METERS_PER_MILE`).
+- **Verify against the live system; don't trust assumptions or even the docs.** Unit tests
+  pass on the units you *assume*; only a real call catches a wrong assumption (e.g.
+  `precipitation_unit=inch` silently flips the forecast API's visibility to feet). Smoke-test
+  the real endpoints and read actual values before declaring done.
+- **Push back when a request conflicts with best practice.** State the disagreement and the
+  reason, propose the better option, then defer to the explicit decision. (Wind is a *speed*
+  in knots, not "inches"; a `helpers.ts` becomes a dumping ground.)
+
 ## Transcript logging
 
 Run **`/log-transcript`** to snapshot the current working session into
@@ -134,9 +180,3 @@ for writing thorough, honest `RESPONSES.md` answers from real history instead of
 - `docs/API-Endpoints.md` — authoritative Open-Meteo API contract (params, shapes, gotchas).
 - `RESPONSES.md` — the two written responses (decisions walkthrough + how you'd evolve it).
 - `docs/transcript-logs/` — saved working conversations (via `/log-transcript`).
-
-## Deliverables reminder
-
-- Working app + `RESPONSES.md` (two questions) in the repo root.
-- README with setup instructions.
-- Public GitHub repo.

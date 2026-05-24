@@ -15,6 +15,9 @@ dist-ssr
 # gstack runtime artifacts
 .gstack/
 
+# Local working transcripts — keep on disk, off the remote
+docs/transcript-logs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
