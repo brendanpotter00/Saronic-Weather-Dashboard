@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scoreForecast, scoreDay, scoreHour } from './scoring';
 import { Status, Factor } from './status';
+import { DEMO_WINDOW_HOURS } from '../config/app';
 import type { CombinedForecast, CombinedHour, DayForecast } from '../model';
 
 // An all-clear hour; tests override one factor at a time to probe a single boundary.
@@ -163,6 +164,34 @@ describe('scoreDay — contiguity by timestamp, not array index', () => {
     const hours = goHours(7, 6);
     hours[2] = mkHour(9, { complete: false });
     expect(scoreDay(mkDay(hours)).isCandidate).toBe(false);
+  });
+});
+
+describe('scoreDay — daylight-window pass-through (the "possible window" vs the demo window)', () => {
+  it('echoes sunrise/sunset/daylight duration straight through from the source day', () => {
+    const day = scoreDay(
+      mkDay(goHours(7, 6), {
+        sunriseTime: iso(6),
+        sunsetTime: iso(19),
+        daylightDurationSeconds: 46800,
+      }),
+    );
+    expect(day.sunriseTime).toBe(iso(6));
+    expect(day.sunsetTime).toBe(iso(19));
+    expect(day.daylightDurationSeconds).toBe(46800);
+  });
+
+  it('echoes the demo-window requirement (DEMO_WINDOW_HOURS) so the UI need not import config', () => {
+    expect(scoreDay(mkDay(goHours(7, 6))).demoWindowHours).toBe(DEMO_WINDOW_HOURS);
+  });
+
+  it('passes a null daylight span through unchanged (incomplete metadata)', () => {
+    const day = scoreDay(
+      mkDay(goHours(7, 6), { sunriseTime: null, sunsetTime: null, daylightDurationSeconds: null }),
+    );
+    expect(day.sunriseTime).toBeNull();
+    expect(day.sunsetTime).toBeNull();
+    expect(day.daylightDurationSeconds).toBeNull();
   });
 });
 

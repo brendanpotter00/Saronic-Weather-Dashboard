@@ -1,6 +1,6 @@
 // Public, render-ready vocabulary for the scoring layer. These are what the UI binds to
 // (a badge colour, a factor label) — so they live apart from the internal tier mechanics
-// (`tiers.ts`) and the threshold numbers (`thresholds.ts`). This file changes only when we
+// (`tiers.ts`) and the threshold numbers (`weatherThresholds.ts`). This file changes only when we
 // add or rename a status or a factor, not when Tara's numbers or the banding logic change.
 //
 // Enum-style value+type pairs. Real TS `enum`s are rejected by this project's

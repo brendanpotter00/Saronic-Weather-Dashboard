@@ -5,7 +5,7 @@
 // stays presentational: it never re-derives a threshold or computes a worst-of-N.
 //
 // The pieces this composes live in sibling files by reason-to-change: public vocabulary in
-// `status.ts`, threshold numbers in `thresholds.ts`, tier mechanics in `tiers.ts`. This file
+// `status.ts`, threshold numbers in `weatherThresholds.ts`, tier mechanics in `tiers.ts`. This file
 // owns only the enrichment shape and the window algorithm.
 
 import { DEMO_WINDOW_HOURS } from '../config/app';
@@ -43,6 +43,13 @@ export interface ScoredHour {
 
 export interface ScoredDay {
   date: string; // pass-through "YYYY-MM-DD"
+  // The "possible" window the demo could fall within — daylight, sunrise to sunset. Distinct
+  // from the demo window (the contiguous run a demo actually needs). Passed through from the
+  // data layer so the UI surfaces the span without re-deriving it from raw hours.
+  sunriseTime: string | null; // pass-through from DayForecast (ISO 8601 with site offset)
+  sunsetTime: string | null; // pass-through from DayForecast (ISO 8601 with site offset)
+  daylightDurationSeconds: number | null; // pass-through; UI formats it, the value stays a number
+  demoWindowHours: number; // = DEMO_WINDOW_HOURS, echoed so the UI states the requirement without importing config/app.ts
   hours: ScoredHour[]; // all daylight hours, scored (feeds the hourly drill-down)
   badge: Status; // best ACHIEVABLE status across contiguous demo-length windows; NoGo if none
   isCandidate: boolean; // badge !== NoGo — i.e. some in-bounds demo-length window exists
@@ -132,6 +139,10 @@ export function scoreDay(day: DayForecast): ScoredDay {
   const badge = TIER_TO_STATUS[badgeTier];
   return {
     date: day.date,
+    sunriseTime: day.sunriseTime,
+    sunsetTime: day.sunsetTime,
+    daylightDurationSeconds: day.daylightDurationSeconds,
+    demoWindowHours: DEMO_WINDOW_HOURS,
     hours,
     badge,
     isCandidate: badge !== Status.NoGo,

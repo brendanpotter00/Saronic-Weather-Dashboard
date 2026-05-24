@@ -1,17 +1,8 @@
-import './App.css'
-import { useGetCombinedForecastQuery } from './forecast/forecastApi'
+// Thin shell: the providers live in main.tsx (Redux + MUI theme); the page lives in Dashboard.
+import { Dashboard } from './dashboard/Dashboard'
 
 function App() {
-  const { isLoading, error } = useGetCombinedForecastQuery()
-
-  return (
-    <main className="app">
-      <h1>Saronic Weather Dashboard</h1>
-      <p>10-day demo weather look-ahead for Gulfport, MS.</p>
-      {isLoading && <p>Loading forecast…</p>}
-      {error && <p role="alert">Couldn’t load the forecast.</p>}
-    </main>
-  )
+  return <Dashboard />
 }
 
 export default App

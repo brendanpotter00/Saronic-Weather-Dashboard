@@ -75,12 +75,12 @@ Always send these params: `timezone=America/Chicago`, `wind_speed_unit=kn`,
 
 ## Tech stack
 
-- **Now:** React 19 + TypeScript + Vite.
-- **Planned (not yet installed):** MUI (accessible component set that also covers mobile
-  responsiveness), Redux Toolkit (global state), RTK Query (data fetching with a TTL cache
-  for the 10-min caching requirement).
-  Treat these as the intended direction — check `package.json` before assuming they're
-  present.
+- React 19 + TypeScript + Vite.
+- **Redux Toolkit + RTK Query** — global state + data fetching with the TTL cache (data layer
+  in `src/forecast/`).
+- **MUI** — accessible component set that also covers mobile responsiveness + theming (UI in
+  `src/dashboard/`, theme/tokens in `src/theme/`).
+- All installed — check `package.json` for versions.
 - **No backend, by design.** Open-Meteo needs no API key or auth, so a Node/server layer
   would be overkill (see `docs/Notes.md`). Pure client-side SPA.
 
@@ -121,6 +121,10 @@ npm run lint     # eslint
 - Source lives in `src/`; static assets in `public/`.
 - **Decisions matter more than polish** (per the brief). Keep code clean, readable, and
   maintainable over clever; prefer thoughtful go/no-go logic over calling every endpoint.
+- **UI:** MUI, built in `src/dashboard/` with theme/tokens in `src/theme/`. Pull style tokens
+  from `src/theme/theme.ts` and status colours from `src/theme/statusColor.ts` — never hardcode
+  px/hex or green/amber/red. See **`docs/UI-Style-Guide.md`** (design system) and
+  **`docs/UI-Architecture.md`** (component map, scope, extension seams) before adding UI.
 
 ## Code & naming conventions (the review bar)
 
@@ -180,5 +184,7 @@ for writing thorough, honest `RESPONSES.md` answers from real history instead of
 - `docs/Saronic-Weather-Dashboard-Instructions.md` — the original challenge brief.
 - `docs/Notes.md` — clarifying-question answers, requirements, decisions, and rough plan.
 - `docs/API-Endpoints.md` — authoritative Open-Meteo API contract (params, shapes, gotchas).
+- `docs/UI-Architecture.md` — UI component map, data flow, in/out scope, and extension seams.
+- `docs/UI-Style-Guide.md` — the design system: theme tokens, status-colour map, MUI usage.
 - `RESPONSES.md` — the two written responses (decisions walkthrough + how you'd evolve it).
 - `docs/transcript-logs/` — saved working conversations (via `/log-transcript`).
