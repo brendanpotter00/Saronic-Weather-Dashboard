@@ -15,26 +15,26 @@ describe('formatFactorValue', () => {
     }
   });
 
-  it('wind rounds to a whole knot', () => {
-    expect(formatFactorValue(Factor.Wind, 18.4)).toBe('18');
-    expect(formatFactorValue(Factor.Wind, 14.6)).toBe('15');
+  it('wind rounds to a whole knot with unit appended', () => {
+    expect(formatFactorValue(Factor.Wind, 18.4)).toBe('18 kn');
+    expect(formatFactorValue(Factor.Wind, 14.6)).toBe('15 kn');
   });
 
-  it('wave keeps one decimal foot', () => {
-    expect(formatFactorValue(Factor.Wave, 2)).toBe('2.0');
-    expect(formatFactorValue(Factor.Wave, 2.34)).toBe('2.3');
+  it('wave keeps one decimal foot with unit appended', () => {
+    expect(formatFactorValue(Factor.Wave, 2)).toBe('2.0 ft');
+    expect(formatFactorValue(Factor.Wave, 2.34)).toBe('2.3 ft');
   });
 
-  it('precipitation: clean "0" for no rain, and real-but-tiny rain never rounds away', () => {
-    expect(formatFactorValue(Factor.Precipitation, 0)).toBe('0');
-    expect(formatFactorValue(Factor.Precipitation, 0.004)).toBe('<0.01'); // would be "0.00" — the wrong signal
-    expect(formatFactorValue(Factor.Precipitation, 0.04)).toBe('0.04');
+  it('precipitation: clean "0 in" for no rain, and real-but-tiny rain never rounds away', () => {
+    expect(formatFactorValue(Factor.Precipitation, 0)).toBe('0 in');
+    expect(formatFactorValue(Factor.Precipitation, 0.004)).toBe('<0.01 in'); // would be "0.00" — the wrong signal
+    expect(formatFactorValue(Factor.Precipitation, 0.04)).toBe('0.04 in');
   });
 
-  it('visibility caps at the sensor ceiling and rounds otherwise', () => {
-    expect(formatFactorValue(Factor.Visibility, 16)).toBe('15+');
-    expect(formatFactorValue(Factor.Visibility, 15)).toBe('15+');
-    expect(formatFactorValue(Factor.Visibility, 7.2)).toBe('7');
+  it('visibility caps at the sensor ceiling and rounds otherwise, unit appended', () => {
+    expect(formatFactorValue(Factor.Visibility, 16)).toBe('15+ mi');
+    expect(formatFactorValue(Factor.Visibility, 15)).toBe('15+ mi');
+    expect(formatFactorValue(Factor.Visibility, 7.2)).toBe('7 mi');
   });
 });
 

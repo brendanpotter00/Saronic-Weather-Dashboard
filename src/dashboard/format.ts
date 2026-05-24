@@ -61,26 +61,31 @@ export function formatClockTime(iso: string): string {
 // ceiling ("15+") rather than a noisy exact mile count that implies false precision.
 const VISIBILITY_DISPLAY_CAP_MILES = 15;
 
-// Turn one factor reading into its cell string. Units are intentionally omitted — the table
-// header carries them ("Wind kn", "Wave ft", …) — so cells stay terse numbers, with words
-// reserved for the one case a bare number would misread:
-//   • visibility at the ceiling → "15+" (the sensor maxes out; an exact figure would mislead)
-// Rounding is per factor: wind & visibility are whole numbers; wave is small so it keeps one
-// decimal; rain is sub-inch so it keeps two — except a clean "0" for no rain, and a "<0.01"
-// floor so real-but-tiny rain never rounds away to look dry (the exact wrong signal for a
-// no-go factor). A missing reading (null) is "—", distinct from a measured zero.
+// Unit suffixes appended to factor values for display (the table header carries only the name).
+const KNOTS = 'kn';
+const FEET = 'ft';
+const INCHES = 'in';
+const MILES = 'mi';
+
+// Turn one factor reading into its cell string, with the unit appended to the number (the table
+// header carries only the factor name now). Rounding is per factor: wind & visibility are whole
+// numbers; wave is small so it keeps one decimal; rain is sub-inch so it keeps two — except a
+// clean "0 in" for no rain, and a "<0.01 in" floor so real-but-tiny rain never rounds away to
+// look dry (the exact wrong signal for a no-go factor). Visibility caps at the sensor ceiling
+// ("15+ mi") rather than implying false precision. A missing reading (null) is a unit-less "—",
+// distinct from a measured zero.
 export function formatFactorValue(factor: Factor, value: number | null): string {
   if (value === null) return MISSING_DISPLAY;
 
   switch (factor) {
     case Factor.Wind:
-      return String(Math.round(value));
+      return `${Math.round(value)} ${KNOTS}`;
     case Factor.Wave:
-      return value.toFixed(1);
+      return `${value.toFixed(1)} ${FEET}`;
     case Factor.Precipitation:
-      if (value === 0) return '0';
-      return value < 0.01 ? '<0.01' : value.toFixed(2);
+      if (value === 0) return `0 ${INCHES}`;
+      return value < 0.01 ? `<0.01 ${INCHES}` : `${value.toFixed(2)} ${INCHES}`;
     case Factor.Visibility:
-      return value >= VISIBILITY_DISPLAY_CAP_MILES ? `${VISIBILITY_DISPLAY_CAP_MILES}+` : String(Math.round(value));
+      return value >= VISIBILITY_DISPLAY_CAP_MILES ? `${VISIBILITY_DISPLAY_CAP_MILES}+ ${MILES}` : `${Math.round(value)} ${MILES}`;
   }
 }

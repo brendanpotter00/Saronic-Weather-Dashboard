@@ -67,10 +67,10 @@ export function DayDetail({ day }: { day: ScoredDay }) {
               >
                 <span />
                 <Typography variant="caption" color="text.secondary">Time</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Wind kn</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Wave ft</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Rain in</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Vis mi</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Wind Speed</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Wave Height</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Rain</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Visibility</Typography>
               </Box>
               {day.hours.map((hour) => (
                 <HourRow key={hour.time} hour={hour} />
