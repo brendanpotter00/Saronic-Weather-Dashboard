@@ -13,7 +13,8 @@ shaped. No thresholds, unit math, timestamp math, or window-scanning happen in c
 
 Layout is **top-down**: context → overview → detail.
 
-1. **Header** — title (named after the site) and the constant demo-window rule.
+1. **Header** — title only (named after the site); the demo-length requirement now lives in the
+   day detail's `WindowSummary`.
 2. **Pinned-window slot** — reserved, renders nothing today (see seams below).
 3. **Horizon line** — the centerpiece: a row of color-coded day "cards", each a contiguous line
    of that day's daylight hours coloured by hour status. This is how Tara picks a day.
@@ -32,7 +33,7 @@ useScoredForecast()                   useMemo(scoreForecast)             (src/da
         │  → ScoredForecast { site, marineSite, timezone, marineAvailable, days: ScoredDay[] }
         ▼
 <Dashboard>                           owns selectedDate: string | null   (src/dashboard/Dashboard.tsx)
-        ├─ <DashboardHeader>  (title + demo-window rule)
+        ├─ <DashboardHeader>  (title only)
         ├─ <PinnedWindowSlot> (renders null)
         ├─ marine-unavailable <Alert> (when !marineAvailable)
         ├─ <HorizonStrip>     → <DayColumn> → <HourLine>      (click → setSelectedDate)
@@ -52,7 +53,7 @@ useScoredForecast()                   useMemo(scoreForecast)             (src/da
 | `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast`; the single data entry point. |
 | `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day labels). |
 | `components/StatusBadge.tsx` | The go/caution/no-go pill used in the legend (label + colour from the status map). |
-| `components/DashboardHeader.tsx` | Title (site-named) + the constant demo-window rule. |
+| `components/DashboardHeader.tsx` | Title (site-named) only. |
 | `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
 | `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
 | `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
@@ -61,7 +62,7 @@ useScoredForecast()                   useMemo(scoreForecast)             (src/da
 | `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
 | `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status. |
 | `components/DayDetail.tsx` | Inline drill-down for the selected day. |
-| `components/WindowSummary.tsx` | The "possible daylight window" vs "demo window" distinction. |
+| `components/WindowSummary.tsx` | Two stat cards: the possible daylight window (sunrise→sunset) + the constant demo length (`demoWindowHours`). |
 | `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header). |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
@@ -75,9 +76,10 @@ Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
   (explicitly out of scope, and `scoring.ts` deliberately computes the *best achievable* window
   tier without naming its hours). The UI shows all daylight hours coloured + the day badge; it
   does **not** highlight a chosen 6-hour block. Keep it that way unless scope changes.
-- **Two windows, stated explicitly** (`WindowSummary`): the *possible* window is daylight
-  (sunrise→sunset); the *demo* window is the contiguous in-bounds run a demo needs
-  (`DEMO_WINDOW_HOURS`, echoed onto each `ScoredDay` as `demoWindowHours`).
+- **Two facts, stated side by side** (`WindowSummary`): the *possible* window is daylight
+  (sunrise→sunset, varies daily); the *demo length* is the constant requirement
+  (`DEMO_WINDOW_HOURS`, echoed onto each `ScoredDay` as `demoWindowHours`). The header carries
+  neither now — it's just the title.
 - **Fail-safe surfaces, not silence.** `marineAvailable === false` shows a banner; an incomplete
   day shows a warning in its detail. The data layer went to trouble to flag these — don't hide them.
 
@@ -86,7 +88,10 @@ Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
 `ScoredDay` was extended (in `src/scoring/scoring.ts`) to pass through `sunriseTime`,
 `sunsetTime`, `daylightDurationSeconds`, and to echo `demoWindowHours = DEMO_WINDOW_HOURS`. This
 keeps the daylight-window math out of the UI (the "shape data at the lowest level" rule) — the
-detail renders the span instead of computing it from raw hours.
+detail renders the sunrise→sunset span and the demo length straight from these fields instead of
+computing them from raw hours. (`daylightDurationSeconds` is threaded through and ready, but not
+currently surfaced after the demo-length move to `WindowSummary` — a seam for re-adding a
+daylight-duration line.)
 
 ## In scope (built)
 
