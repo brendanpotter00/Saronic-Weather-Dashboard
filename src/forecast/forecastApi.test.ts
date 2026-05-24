@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import { weatherApi } from './weatherApi';
+import { forecastApi } from './forecastApi';
 import { FORECAST_BASE_URL, MARINE_BASE_URL } from './openMeteoConstants';
-import type { ForecastResponse, MarineResponse } from './types';
+import type { ForecastResponse, MarineResponse } from './responseTypes';
 
 // These tests exercise the queryFn's error/degradation branches directly — the part
 // the PR title ("fail-safe go/no-go semantics") rests on. They run with NO real network:
@@ -46,8 +46,8 @@ const validMarine: MarineResponse = {
 // Fresh store per test so cached data from one branch never bleeds into the next.
 function makeStore() {
   return configureStore({
-    reducer: { [weatherApi.reducerPath]: weatherApi.reducer },
-    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(weatherApi.middleware),
+    reducer: { [forecastApi.reducerPath]: forecastApi.reducer },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(forecastApi.middleware),
   });
 }
 
@@ -94,7 +94,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('weatherApi.getCombinedForecast queryFn', () => {
+describe('forecastApi.getCombinedForecast queryFn', () => {
   it('errors (no data) when the forecast fetch fails — forecast is the backbone', async () => {
     stubFetch({
       forecast: () => new Response('', { status: 500 }),
@@ -102,7 +102,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isError).toBe(true);
     expect(result.status).toBe('rejected');
@@ -120,7 +120,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isError).toBe(true);
     expect(result.error).toBeDefined();
@@ -135,7 +135,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isSuccess).toBe(true);
     expect(result.data).toBeDefined();
@@ -155,7 +155,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isSuccess).toBe(true);
     expect(result.data?.marineAvailable).toBe(false);
@@ -183,7 +183,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isSuccess).toBe(true);
     const hours = result.data!.days[0].hours;
@@ -204,7 +204,7 @@ describe('weatherApi.getCombinedForecast queryFn', () => {
     });
 
     const store = makeStore();
-    const result = await store.dispatch(weatherApi.endpoints.getCombinedForecast.initiate());
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
 
     expect(result.isError).toBe(true);
     expect(errorStatus(result.error)).toBe('CUSTOM_ERROR');

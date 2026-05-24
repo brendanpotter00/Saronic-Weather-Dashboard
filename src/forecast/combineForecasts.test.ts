@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildCombinedForecast } from './combineForecasts';
-import type { ForecastResponse, MarineResponse } from './types';
+import type { ForecastResponse, MarineResponse } from './responseTypes';
 
 // Two days of forecast hours with a mix of day/night so the daylight filter is
 // exercised. Parallel arrays, faithful to the API shape (precip mm, visibility m).

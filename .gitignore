@@ -21,6 +21,9 @@ coverage
 # gstack runtime artifacts
 .gstack/
 
+# Claude Code local worktrees (transient; e.g. ci-coverage)
+.claude/worktrees/
+
 # Local working transcripts — keep on disk, off the remote
 docs/transcript-logs/
 

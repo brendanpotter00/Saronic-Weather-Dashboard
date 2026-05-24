@@ -21,7 +21,8 @@ export default mergeConfig(
         exclude: [
           'src/main.tsx', // ReactDOM bootstrap; nothing to unit-test
           'src/**/*.d.ts',
-          'src/**/types.ts', // type-only, emits no runtime JS
+          'src/model.ts', // type-only domain model, emits no runtime JS
+          'src/forecast/responseTypes.ts', // type-only raw API shapes
           'src/test/**', // the setup file itself
         ],
         thresholds: {

@@ -1,6 +1,6 @@
 // Constants for talking to Open-Meteo: hosts, request variables, and unit flags.
 // Pure declarative data — the request builders that consume these live in
-// weatherApi.ts (their only caller).
+// forecastApi.ts (their only caller).
 
 // Two APIs, two hosts. Their responses are joined by the hourly time[] arrays.
 export const FORECAST_BASE_URL = 'https://api.open-meteo.com/v1/forecast';

@@ -1,5 +1,5 @@
 import './App.css'
-import { useGetCombinedForecastQuery } from './features/weather/weatherApi'
+import { useGetCombinedForecastQuery } from './forecast/forecastApi'
 
 function App() {
   const { isLoading, error } = useGetCombinedForecastQuery()
