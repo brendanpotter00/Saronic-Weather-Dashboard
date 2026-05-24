@@ -122,7 +122,21 @@ export const weatherApi = createApi({
             : (marineRes.data as MarineResponse);
         const forecast = forecastRes.data as ForecastResponse;
 
-        return { data: buildCombinedForecast(forecast, marine) };
+        // Defense-in-depth: any unexpected shape that slips past the structural guard
+        // above (e.g. an invalid-but-nonempty timezone string like "Not/AZone" that
+        // throws a RangeError inside Intl.DateTimeFormat) must degrade to a clean error,
+        // not an uncaught throw — RTK Query's queryFn contract is to return
+        // {data}|{error}, never throw (a throw rejects the query promise).
+        try {
+          return { data: buildCombinedForecast(forecast, marine) };
+        } catch {
+          return {
+            error: {
+              status: 'CUSTOM_ERROR',
+              error: 'Failed to build forecast from response',
+            } as FetchBaseQueryError,
+          };
+        }
       },
     }),
   }),

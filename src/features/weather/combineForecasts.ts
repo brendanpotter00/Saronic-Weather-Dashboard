@@ -74,6 +74,10 @@ export function buildCombinedForecast(
   }
 
   // 2) Bucket daylight hours by calendar date (prefix of the local ISO time).
+  // Step 3 drives day order from daily.time, so a daylight hour whose date prefix isn't
+  // in daily.time is intentionally dropped (never surfaced). The two grids align in
+  // practice; if they ever didn't, dropping the orphan hour errs toward no-go, never a
+  // false GO.
   const hoursByDate = new Map<string, CombinedHour[]>();
   for (const hour of hours) {
     const date = hour.time.slice(0, DATE_KEY_LENGTH);
@@ -90,7 +94,10 @@ export function buildCombinedForecast(
   const days: DayForecast[] = d.time.map((date, i) => {
     const sunriseTime = localTimeToSiteIso(d.sunrise[i], timeZone);
     const sunsetTime = localTimeToSiteIso(d.sunset[i], timeZone);
-    const daylightDurationSeconds = d.daylight_duration[i] ?? null;
+    // Shares the same fail-safe guard as the hourly numeric factors (wind/wave/etc.):
+    // a NaN or stray string from a malformed-but-200 body becomes null, so it can't
+    // survive `?? null` and falsely satisfy the `complete` predicate with garbage metadata.
+    const daylightDurationSeconds = finiteOrNull(d.daylight_duration[i]);
     const hours = hoursByDate.get(date) ?? [];
     return {
       date,
