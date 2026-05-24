@@ -59,15 +59,16 @@ Tech Stack:
 4. Redux - Global state management for React
 
 Rough Plan: 
-1. Prototype design
+1. Prototype design - 
 2. Get agent docs established - api context, root agent file - 
 3. Establish api contracts and endpoints -
-4. Establish the layout 
-5. Implement 10 day overview
-6. Implement save time window
-7. Implement flexible thresholds 
-8. Implement local storage 
-9. Deploy to vercel
+4. Implement business logic 
+5. Establish the layout 
+6. Implement 10 day overview
+7. Implement save time window
+8. Implement flexible thresholds 
+9. Implement local storage 
+10. Deploy to vercel
 
 What I did:
 0. Read doc and take notes on clarifying questions, requirements, nonfunctional requirements, out of scope, tech stack, rough plan
@@ -81,6 +82,10 @@ What I did:
    b. Weather.com - I need to see what Tara is working with right now.
 3. Throw requirements into AI without any guidance to see what it comes up with and if it considers things that I did not
     a. Showed a lot of iterations of how to visualize the days 
+    b. Went back and forth getting the prototype finalized 
+4. Started implementing data first
+    a. used claude learning mode 
+    b. created skill to automate my preferences
 
 During Implementation Log: 
 1. Decided against using nodejs as it is overkill for this project because no api key and auth

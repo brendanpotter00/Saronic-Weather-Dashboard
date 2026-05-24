@@ -222,8 +222,16 @@ The values returned in the units above map to Tara's go / iffy / no-go bands
   Both echo their resolved `latitude`/`longitude`. This is expected — marine data
   only exists on water cells — not a bug.
 - **Units are per-request.** Wind comes back in knots only if `wind_speed_unit=kn` is
-  sent; wave height comes back in feet only if `length_unit=imperial` is sent. Omit
-  them and you get m/s and meters.
+  sent; wave height comes back in feet only if `length_unit=imperial` is sent (marine
+  API). Omit them and you get km/h and meters.
+- **⚠️ `precipitation_unit=inch` silently flips visibility to feet (forecast API).**
+  Verified live 2026-05-23 against this site: with no unit params `visibility` is `m`
+  (e.g. 14200); `wind_speed_unit=kn` alone keeps it `m`; adding `precipitation_unit=inch`
+  switches `visibility` to `ft` (the same reading then reports 46587.9). Open-Meteo's own
+  docs claim visibility is unaffected — it isn't. So we **never send `precipitation_unit`**:
+  keep API defaults (precip `mm`, visibility `m`) and convert both explicitly in
+  `normalize.ts` (`millimetersToInches`, `metersToMiles`). Send it and `metersToMiles`
+  divides a feet value by 1609.344, reporting ~3× the true distance.
 - **Always send `timezone`.** Omitting it returns UTC times, which will misalign the
   daylight window and the day grouping.
 - **Visibility comes back in meters, Tara thinks in miles.** Her bands are ≥ 10 mi
@@ -231,3 +239,28 @@ The values returned in the units above map to Tara's go / iffy / no-go bands
 - **Rate limits / caching.** Open-Meteo's free tier is rate-limited and intended for
   non-commercial use. `Notes.md` calls for caching responses ~10 minutes so repeated
   morning checks don't re-hit the API.
+
+---
+
+## 6. Normalized model (what the data layer emits)
+
+The raw parallel arrays above are fused and converted **once**, in
+`combineForecasts.ts` (join by timestamp, daylight-only) using `normalize.ts`
+helpers, into a `CombinedHour[]`. Everything downstream (scoring, UI) reasons in
+these canonical units — never the raw API units. Shape (`types.ts` → `CombinedHour`):
+
+| Field | Unit | Source variable | Conversion |
+| --- | --- | --- | --- |
+| `time` | ISO 8601 w/ site UTC offset (`2026-05-23T06:00:00-05:00`) | forecast `time[]` | `toSiteIso` appends the offset so `new Date()` is unambiguous in any browser timezone |
+| `windSpeedKn` | knots | forecast `wind_speed_10m` | none — requested via `wind_speed_unit=kn` |
+| `waveHeightFt` | feet (nullable) | marine `wave_height` | none — requested via `length_unit=imperial`; `null` when no matching marine hour |
+| `precipitationIn` | inches | forecast `precipitation` (`mm`) | `millimetersToInches` (÷ 25.4) — **not** `precipitation_unit`, see Gotchas |
+| `visibilityMiles` | miles | forecast `visibility` (`m`) | `metersToMiles` (÷ 1609.344) |
+
+`DayForecast` wraps these with `sunriseTime` / `sunsetTime` (same ISO-with-offset
+format) and `daylightDurationSeconds`.
+
+The pattern: units we can request without side effects (`wind_speed_unit`, marine
+`length_unit`) are requested at the API; the one with the visibility side effect
+(`precipitation_unit`) is handled by explicit conversion instead — keeping our unit
+choices decoupled from Open-Meteo's coupled imperial switch.
