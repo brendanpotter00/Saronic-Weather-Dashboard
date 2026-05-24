@@ -24,7 +24,10 @@ const BANDS: { status: Status; factors: string[] }[] = [
   },
   {
     status: Status.Caution,
-    factors: [`wind ${WIND_CAUTION_KN}–${WIND_NOGO_KN} kn`, `wave ${WAVE_CAUTION_FT}–${WAVE_NOGO_FT} ft`, `vis ${VISIBILITY_NOGO_MILES}–${VISIBILITY_GO_MILES} mi`],
+    // Wind/wave dash-ranges are inclusive both ends (both boundaries score caution). Visibility is
+    // inverted: its UPPER bound belongs to GO (vis ≥ GO is go), so the caution band stops *below* it
+    // — "3–<10", mirroring the GO row's "≥ 10" — otherwise 10 would read as both caution and go.
+    factors: [`wind ${WIND_CAUTION_KN}–${WIND_NOGO_KN} kn`, `wave ${WAVE_CAUTION_FT}–${WAVE_NOGO_FT} ft`, `vis ${VISIBILITY_NOGO_MILES}–<${VISIBILITY_GO_MILES} mi`],
   },
   {
     status: Status.NoGo,
