@@ -8,12 +8,12 @@ import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
-import { useScoredForecast } from './useScoredForecast';
-import { DashboardHeader } from './DashboardHeader';
-import { PinnedWindowSlot } from './PinnedWindowSlot';
-import { HorizonStrip } from './HorizonStrip';
-import { DayDetail } from './DayDetail';
-import { DashboardFooter } from './DashboardFooter';
+import { useScoredForecast } from './hooks/useScoredForecast';
+import { DashboardHeader } from './components/DashboardHeader';
+import { PinnedWindowSlot } from './components/PinnedWindowSlot';
+import { HorizonStrip } from './components/HorizonStrip';
+import { DayDetail } from './components/DayDetail';
+import { DashboardFooter } from './components/DashboardFooter';
 
 export function Dashboard() {
   const { scored, isLoading, error } = useScoredForecast();

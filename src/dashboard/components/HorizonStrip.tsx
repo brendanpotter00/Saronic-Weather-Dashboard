@@ -6,7 +6,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import type { ScoredDay } from '../scoring/scoring';
+import type { ScoredDay } from '../../scoring/scoring';
 import { DayColumn } from './DayColumn';
 
 interface HorizonStripProps {

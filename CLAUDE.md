@@ -121,10 +121,13 @@ npm run lint     # eslint
 - Source lives in `src/`; static assets in `public/`.
 - **Decisions matter more than polish** (per the brief). Keep code clean, readable, and
   maintainable over clever; prefer thoughtful go/no-go logic over calling every endpoint.
-- **UI:** MUI, built in `src/dashboard/` with theme/tokens in `src/theme/`. Pull style tokens
-  from `src/theme/theme.ts` and status colours from `src/theme/statusColor.ts` — never hardcode
-  px/hex or green/amber/red. See **`docs/UI-Style-Guide.md`** (design system) and
-  **`docs/UI-Architecture.md`** (component map, scope, extension seams) before adding UI.
+- **UI:** MUI, built in `src/dashboard/`, organized by kind: the `Dashboard.tsx` page shell and
+  `format.ts` (display formatting — kept descriptively named, not a `utils/` junk drawer) at the
+  root, presentational components under `components/`, and hooks under `hooks/`. Theme/tokens live
+  in `src/theme/`: pull style tokens from `src/theme/theme.ts` and status colours from
+  `src/theme/statusColor.ts` — never hardcode px/hex or green/amber/red. See
+  **`docs/UI-Style-Guide.md`** (design system) and **`docs/UI-Architecture.md`** (component map,
+  scope, extension seams) before adding UI.
 
 ## Code & naming conventions (the review bar)
 

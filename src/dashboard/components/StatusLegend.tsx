@@ -6,7 +6,7 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { Status } from '../scoring/status';
+import { Status } from '../../scoring/status';
 import { StatusBadge } from './StatusBadge';
 import {
   WIND_NOGO_KN,
@@ -15,7 +15,7 @@ import {
   WAVE_CAUTION_FT,
   VISIBILITY_NOGO_MILES,
   VISIBILITY_GO_MILES,
-} from '../scoring/weatherThresholds';
+} from '../../scoring/weatherThresholds';
 
 const BANDS: { status: Status; factors: string[] }[] = [
   {

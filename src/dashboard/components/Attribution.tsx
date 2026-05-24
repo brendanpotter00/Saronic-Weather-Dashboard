@@ -6,8 +6,8 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { DEFAULT_SITE } from '../config/sites';
-import type { ScoredForecast } from '../scoring/scoring';
+import { DEFAULT_SITE } from '../../config/sites';
+import type { ScoredForecast } from '../../scoring/scoring';
 
 // Compact "lat, lon" with a real minus sign for the western longitude.
 function coords(cell: { latitude: number; longitude: number }): string {

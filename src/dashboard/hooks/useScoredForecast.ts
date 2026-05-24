@@ -5,9 +5,9 @@
 // summary) reuses the same memoised result.
 
 import { useMemo } from 'react';
-import { useGetCombinedForecastQuery } from '../forecast/forecastApi';
-import { scoreForecast } from '../scoring/scoring';
-import type { ScoredForecast } from '../scoring/scoring';
+import { useGetCombinedForecastQuery } from '../../forecast/forecastApi';
+import { scoreForecast } from '../../scoring/scoring';
+import type { ScoredForecast } from '../../scoring/scoring';
 
 export interface UseScoredForecast {
   scored: ScoredForecast | undefined;

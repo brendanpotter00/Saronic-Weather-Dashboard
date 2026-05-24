@@ -13,13 +13,14 @@ shaped. No thresholds, unit math, timestamp math, or window-scanning happen in c
 
 Layout is **top-down**: context → overview → detail.
 
-1. **Header** — title, location, data-source attribution (resolved forecast + marine grid cells),
-   and the status legend/key.
+1. **Header** — title (named after the site) and the constant demo-window rule.
 2. **Pinned-window slot** — reserved, renders nothing today (see seams below).
 3. **Horizon line** — the centerpiece: a row of color-coded day "cards", each a contiguous line
    of that day's daylight hours coloured by hour status. This is how Tara picks a day.
 4. **Day detail** — opens **inline below the line** for the selected day: the day's badge as a
    big word, the two-windows summary, and every daylight hour with its four factor readings.
+5. **Footer** — the status legend/key and data-source attribution (resolved forecast + marine
+   grid cells).
 
 ## Data flow
 
@@ -27,40 +28,42 @@ Layout is **top-down**: context → overview → detail.
 useGetCombinedForecastQuery()         RTK Query, 10-min in-memory cache  (src/forecast/forecastApi.ts)
         │  → CombinedForecast
         ▼
-useScoredForecast()                   useMemo(scoreForecast)             (src/dashboard/useScoredForecast.ts)
+useScoredForecast()                   useMemo(scoreForecast)             (src/dashboard/hooks/useScoredForecast.ts)
         │  → ScoredForecast { site, marineSite, timezone, marineAvailable, days: ScoredDay[] }
         ▼
 <Dashboard>                           owns selectedDate: string | null   (src/dashboard/Dashboard.tsx)
-        ├─ <DashboardHeader>  → <Attribution> + <StatusLegend>
+        ├─ <DashboardHeader>  (title + demo-window rule)
         ├─ <PinnedWindowSlot> (renders null)
         ├─ marine-unavailable <Alert> (when !marineAvailable)
         ├─ <HorizonStrip>     → <DayColumn> → <HourLine>      (click → setSelectedDate)
-        └─ <DayDetail>        → <WindowSummary> + <HourRow> → <FactorCell>
+        ├─ <DayDetail>        → <WindowSummary> + <HourRow> → <FactorCell>
+        └─ <DashboardFooter>  → <StatusLegend> + <Attribution>
 ```
 
 - **Scoring is run once, memoised on the query `data` reference.** Expand/collapse never re-scores.
 - **Selected day is local `useState`**, keyed by the stable `date` string (not an array index),
   defaulting to day 0 (today). It is *not* in Redux — it's ephemeral view state with one owner.
 
-## Component map (`src/dashboard/`, flat — matches the repo's domain-folder style)
+## Component map (`src/dashboard/`, organized by kind: shell + `format.ts` at root, `hooks/`, `components/`)
 
 | File | Responsibility |
 | --- | --- |
 | `Dashboard.tsx` | Page shell + layout; owns `selectedDate`; loading (Skeleton) / error (Alert) / empty states. |
-| `useScoredForecast.ts` | Query → memoised `scoreForecast`; the single data entry point. |
+| `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast`; the single data entry point. |
 | `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day labels). |
-| `StatusBadge.tsx` | Reusable go/caution/no-go pill (label + colour from the status map). |
-| `DashboardHeader.tsx` | Title + `Attribution` + `StatusLegend`. |
-| `Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
-| `StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
-| `PinnedWindowSlot.tsx` | Reserved empty slot for the deferred pin-to-top feature. |
-| `HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones). |
-| `DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
-| `HourLine.tsx` | One segment per daylight hour, coloured by hour status. |
-| `DayDetail.tsx` | Inline drill-down for the selected day. |
-| `WindowSummary.tsx` | The "possible daylight window" vs "demo window" distinction. |
-| `HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header). |
-| `FactorCell.tsx` | One factor's formatted, status-tinted value. |
+| `components/StatusBadge.tsx` | The go/caution/no-go pill used in the legend (label + colour from the status map). |
+| `components/DashboardHeader.tsx` | Title (site-named) + the constant demo-window rule. |
+| `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
+| `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
+| `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
+| `components/PinnedWindowSlot.tsx` | Reserved empty slot for the deferred pin-to-top feature. |
+| `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones). |
+| `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
+| `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status. |
+| `components/DayDetail.tsx` | Inline drill-down for the selected day. |
+| `components/WindowSummary.tsx` | The "possible daylight window" vs "demo window" distinction. |
+| `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header). |
+| `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
 Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
 

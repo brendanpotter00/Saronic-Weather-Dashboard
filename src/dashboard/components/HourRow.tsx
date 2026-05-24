@@ -3,11 +3,11 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { Factor } from '../scoring/status';
-import type { ScoredHour } from '../scoring/scoring';
-import { STATUS_TO_PALETTE } from '../theme/statusColor';
+import { Factor } from '../../scoring/status';
+import type { ScoredHour } from '../../scoring/scoring';
+import { STATUS_TO_PALETTE } from '../../theme/statusColor';
 import { FactorCell } from './FactorCell';
-import { formatHourLabel } from './format';
+import { formatHourLabel } from '../format';
 
 // status bar · time · wind · wave · rain · vis — imported by DayDetail for the aligned header.
 export const HOUR_GRID = '6px 56px repeat(4, 1fr)';

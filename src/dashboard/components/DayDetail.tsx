@@ -8,12 +8,12 @@ import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
-import { Status } from '../scoring/status';
-import type { ScoredDay } from '../scoring/scoring';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../theme/statusColor';
+import { Status } from '../../scoring/status';
+import type { ScoredDay } from '../../scoring/scoring';
+import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
 import { WindowSummary } from './WindowSummary';
 import { HourRow, HOUR_GRID } from './HourRow';
-import { formatDayLabel } from './format';
+import { formatDayLabel } from '../format';
 
 // Plain-language read of the day's badge — describes status, never recommends a window.
 const SUMMARY: Record<Status, string> = {

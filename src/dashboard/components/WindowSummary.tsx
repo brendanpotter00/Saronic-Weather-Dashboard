@@ -5,8 +5,8 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import type { ScoredDay } from '../scoring/scoring';
-import { formatClockTime, formatDuration, MISSING_DISPLAY } from './format';
+import type { ScoredDay } from '../../scoring/scoring';
+import { formatClockTime, formatDuration, MISSING_DISPLAY } from '../format';
 
 export function WindowSummary({ day }: { day: ScoredDay }) {
   const daylight =

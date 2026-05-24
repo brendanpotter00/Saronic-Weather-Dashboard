@@ -4,9 +4,9 @@
 // recommending a specific window (explicitly out of scope).
 
 import Box from '@mui/material/Box';
-import type { ScoredHour } from '../scoring/scoring';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../theme/statusColor';
-import { formatHourLabel } from './format';
+import type { ScoredHour } from '../../scoring/scoring';
+import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
+import { formatHourLabel } from '../format';
 
 export function HourLine({ hours }: { hours: ScoredHour[] }) {
   return (

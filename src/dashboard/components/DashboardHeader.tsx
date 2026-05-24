@@ -6,7 +6,7 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { DEFAULT_SITE } from '../config/sites';
+import { DEFAULT_SITE } from '../../config/sites';
 
 // demoWindowHours comes from the scored data (echoed from DEMO_WINDOW_HOURS), so the UI states
 // the rule without importing app config — and a future configurable length flows through for free.

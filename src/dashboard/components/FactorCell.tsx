@@ -3,10 +3,10 @@
 // while a caution/no-go factor is coloured to draw the eye to what's limiting the hour.
 
 import Typography from '@mui/material/Typography';
-import { Status, Factor } from '../scoring/status';
-import type { ScoredFactor } from '../scoring/scoring';
-import { STATUS_TO_PALETTE } from '../theme/statusColor';
-import { formatFactorValue } from './format';
+import { Status, Factor } from '../../scoring/status';
+import type { ScoredFactor } from '../../scoring/scoring';
+import { STATUS_TO_PALETTE } from '../../theme/statusColor';
+import { formatFactorValue } from '../format';
 
 export function FactorCell({ factor, scored }: { factor: Factor; scored: ScoredFactor }) {
   const color = scored.status === Status.Go ? 'text.primary' : `${STATUS_TO_PALETTE[scored.status]}.main`;

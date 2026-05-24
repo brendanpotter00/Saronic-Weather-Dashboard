@@ -90,6 +90,6 @@ export function formatFactorValue(factor: Factor, value: number | null): string 
       if (value === 0) return '0';
       return value < 0.01 ? '<0.01' : value.toFixed(2);
     case Factor.Visibility:
-      return value >= VISIBILITY_DISPLAY_CAP_MILES ? '15+' : String(Math.round(value));
+      return value >= VISIBILITY_DISPLAY_CAP_MILES ? `${VISIBILITY_DISPLAY_CAP_MILES}+` : String(Math.round(value));
   }
 }

@@ -7,10 +7,10 @@ import ButtonBase from '@mui/material/ButtonBase';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { ScoredDay } from '../scoring/scoring';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../theme/statusColor';
+import type { ScoredDay } from '../../scoring/scoring';
+import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
 import { HourLine } from './HourLine';
-import { formatDayLabel } from './format';
+import { formatDayLabel } from '../format';
 
 interface DayColumnProps {
   day: ScoredDay;
