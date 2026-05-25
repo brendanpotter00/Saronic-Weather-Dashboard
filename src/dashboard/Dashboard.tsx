@@ -42,8 +42,8 @@ export function Dashboard() {
   // date string, not an index, so it survives a refetch that reorders/replaces the array.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   // The window Tara has pinned to the top, and the one currently open in the confirm dialog (a
-  // pending pin, or an Edit of the existing one). Both ephemeral view state with one owner, like
-  // selectedDate — persistence is out of scope (picture it DB-saved).
+  // pending pin). Both ephemeral view state with one owner, like selectedDate — persistence is
+  // out of scope (picture it DB-saved).
   const [pinnedWindow, setPinnedWindow] = useState<PinnedWindow | null>(null);
   const [dialogWindow, setDialogWindow] = useState<WindowSelection | null>(null);
 
