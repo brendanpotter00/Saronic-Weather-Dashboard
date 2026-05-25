@@ -15,12 +15,9 @@ const responsesHtml = marked.parse(responsesMarkdown, { async: false })
 export function ResponsesPage() {
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, sm: 6 } }}>
-      <Box component="header" sx={{ mb: 4 }}>
+      <Box component="header" sx={{ mb: 2 }}>
         <Typography variant="overline" color="text.secondary" component="p">
           Saronic Weather Dashboard
-        </Typography>
-        <Typography variant="h1" sx={{ mt: 0.5, mb: 1.5 }}>
-          Final questions &amp; responses
         </Typography>
         <Link href="/" underline="hover" sx={{ fontWeight: 600 }}>
           ← Back to dashboard
@@ -34,7 +31,7 @@ export function ResponsesPage() {
           color: 'text.primary',
           // The .md leads with the two questions as an ordered list; counter-reset keeps
           // numbering correct and the headings/spacing pull from theme tokens, not literals.
-          '& h1': { ...theme.typography.h1, mt: 5, mb: 2 },
+          '& h1': { ...theme.typography.h1, mt: 1, mb: 2 },
           '& h2': { ...theme.typography.h2, mt: 4, mb: 1.5 },
           '& h3': { ...theme.typography.h3, mt: 3, mb: 1 },
           '& p': { ...theme.typography.body1, my: 2, lineHeight: 1.7 },
