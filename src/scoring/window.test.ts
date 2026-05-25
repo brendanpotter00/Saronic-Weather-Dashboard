@@ -126,6 +126,20 @@ describe('scoreNamedWindow — roll a concrete block up to one status + worst-in
     expect(score.factors[Factor.Visibility].value).toBe(10);
   });
 
+  it('breaks a same-tier visibility tie toward the LOWER (worse) reading — inverted direction holds at CAUTION', () => {
+    // Three CAUTION-tier visibility hours (3–6 mi). Visibility is the one factor where LOWER is worse,
+    // so the card must surface 4.0 mi, not 5.5 — exercises FACTOR_WORSE_WHEN_HIGHER[Visibility]=false
+    // at a non-GO tier (the existing peak/trough test only covers the all-GO case).
+    const hours = [
+      mkHour(8, { visibilityMiles: 5.5 }),
+      mkHour(9, { visibilityMiles: 4.0 }), // worst (lowest miles)
+      mkHour(10, { visibilityMiles: 5.0 }),
+    ];
+    const score = scoreNamedWindow(scoreDay(mkDay(hours)), 8, 3);
+    expect(score.factors[Factor.Visibility].status).toBe(Status.Caution);
+    expect(score.factors[Factor.Visibility].value).toBe(4.0);
+  });
+
   it('a block that spans a gap is incomplete -> fail-safe no-go', () => {
     // Hours 8 and 9 exist, 10 is missing → a 8..13 block has only 2 of 6 hours.
     const day = scoreDay(mkDay([mkHour(8), mkHour(9), mkHour(13), mkHour(14)]));
