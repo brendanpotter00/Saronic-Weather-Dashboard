@@ -9,15 +9,78 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { alpha } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import { Factor, Status } from '../../scoring/status';
 import type { ScoredHour } from '../../scoring/scoring';
-import { STATUS_TO_PALETTE } from '../../theme/statusColor';
+import { STATUS_TO_PALETTE, type StatusPaletteKey } from '../../theme/statusColor';
 import { FactorCell } from './FactorCell';
 import { formatHourLabel } from '../format';
 
 // status bar · time · wind · wave · rain · vis — imported by DayDetail for the aligned header.
 export const HOUR_GRID = '6px 56px repeat(4, 1fr)';
+
+const SELECTION_TINT_ALPHA = 0.14; // status tint behind a previewed window — the table's only fill
+
+interface HourRowRootProps {
+  paletteKey: StatusPaletteKey | null; // previewed window's status; null when no preview
+  inSelection: boolean;
+  isSelectionStart: boolean;
+  isSelectionEnd: boolean;
+  isInWindow: boolean; // hour.isInWindow — drives the out-of-window dimming
+}
+
+const HourRowRoot = styled(Box, {
+  shouldForwardProp: (prop) =>
+    !['paletteKey', 'inSelection', 'isSelectionStart', 'isSelectionEnd', 'isInWindow'].includes(
+      prop as string,
+    ),
+})<HourRowRootProps>(({ theme, paletteKey, inSelection, isSelectionStart, isSelectionEnd, isInWindow }) => {
+  const bracketColor = paletteKey ? theme.palette[paletteKey].main : undefined;
+  const radius = theme.shape.borderRadius;
+
+  const base = {
+    display: 'grid',
+    gridTemplateColumns: HOUR_GRID,
+    columnGap: theme.spacing(1.5),
+    alignItems: 'center',
+    paddingTop: theme.spacing(0.75),
+    paddingBottom: theme.spacing(0.75),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    // 2px transparent side borders reserve space so the selection bracket can't shift the row.
+    borderLeft: '2px solid transparent',
+    borderRight: '2px solid transparent',
+    cursor: 'pointer',
+    transition: theme.transitions.create('background-color'),
+    // A selected row stays crisp even when out-of-window — Tara chose these hours explicitly.
+    opacity: inSelection || isInWindow ? 1 : 0.45,
+    '&:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: '-2px',
+    },
+  };
+
+  // Outside the previewed block: hover hints the row is clickable.
+  if (!inSelection || !bracketColor) {
+    return { ...base, '&:hover': { backgroundColor: theme.palette.action.hover } };
+  }
+
+  // Inside the block: tint by the window's status; bracket only the first/last edges.
+  // Drop the grey divider inside the block — only the outer edges get the coloured bracket.
+  return {
+    ...base,
+    backgroundColor: alpha(bracketColor, SELECTION_TINT_ALPHA),
+    borderLeftColor: bracketColor,
+    borderRightColor: bracketColor,
+    borderTopColor: isSelectionStart ? bracketColor : 'transparent',
+    borderTopLeftRadius: isSelectionStart ? radius : 0,
+    borderTopRightRadius: isSelectionStart ? radius : 0,
+    ...(isSelectionEnd && {
+      borderBottom: `2px solid ${bracketColor}`,
+      borderBottomLeftRadius: radius,
+      borderBottomRightRadius: radius,
+    }),
+  };
+});
 
 interface HourRowProps {
   hour: ScoredHour;
@@ -41,10 +104,15 @@ export function HourRow({
   const paletteKey = selectionStatus ? STATUS_TO_PALETTE[selectionStatus] : null;
 
   return (
-    <Box
+    <HourRowRoot
       role="button"
       tabIndex={0}
       aria-label={`Pin a demo window around ${formatHourLabel(hour.time)}`}
+      paletteKey={paletteKey}
+      inSelection={inSelection}
+      isSelectionStart={isSelectionStart}
+      isSelectionEnd={isSelectionEnd}
+      isInWindow={hour.isInWindow}
       onMouseEnter={() => onHover(hour.clockHour)}
       onFocus={() => onHover(hour.clockHour)}
       onClick={() => onSelect(hour.clockHour)}
@@ -53,41 +121,6 @@ export function HourRow({
           event.preventDefault();
           onSelect(hour.clockHour);
         }
-      }}
-      sx={(theme) => {
-        const color = paletteKey ? theme.palette[paletteKey].main : undefined;
-        return {
-          display: 'grid',
-          gridTemplateColumns: HOUR_GRID,
-          columnGap: 1.5,
-          alignItems: 'center',
-          py: 0.75,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          // 2px transparent side borders reserve space so the selection bracket can't shift the row.
-          borderLeft: '2px solid transparent',
-          borderRight: '2px solid transparent',
-          cursor: 'pointer',
-          transition: 'background-color .12s ease',
-          // A selected row stays crisp even when out-of-window — Tara chose these hours explicitly.
-          opacity: inSelection || hour.isInWindow ? 1 : 0.45,
-          '&:hover': inSelection ? undefined : { bgcolor: 'action.hover' },
-          '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: '-2px' },
-          ...(inSelection &&
-            color && {
-              bgcolor: alpha(color, 0.14),
-              borderLeftColor: color,
-              borderRightColor: color,
-              // Drop the grey divider inside the block; bracket only the first/last edges.
-              borderTopColor: isSelectionStart ? color : 'transparent',
-              ...(isSelectionStart && { borderTopLeftRadius: 8, borderTopRightRadius: 8 }),
-              ...(isSelectionEnd && {
-                borderBottom: `2px solid ${color}`,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 8,
-              }),
-            }),
-        };
       }}
     >
       <Box sx={{ height: 20, borderRadius: 0.5, bgcolor: `${STATUS_TO_PALETTE[hour.status]}.main` }} />
@@ -98,6 +131,6 @@ export function HourRow({
       <FactorCell factor={Factor.Wave} scored={hour.wave} />
       <FactorCell factor={Factor.Precipitation} scored={hour.precipitation} />
       <FactorCell factor={Factor.Visibility} scored={hour.visibility} />
-    </Box>
+    </HourRowRoot>
   );
 }
