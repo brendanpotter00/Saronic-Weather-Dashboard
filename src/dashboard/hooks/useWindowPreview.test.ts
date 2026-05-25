@@ -13,6 +13,10 @@ const dayWithNoGoMidday = scoredDay('2026-05-24', {
     hour.clockHour === 10 ? { ...hour, status: Status.NoGo } : hour,
   ),
 });
+// Every hour reads "go" but each is flagged incomplete — the block can't clear, so it's a fail-safe no-go.
+const dayIncompleteReadings = scoredDay('2026-05-24', {
+  hours: scoredDay('2026-05-24').hours.map((hour) => ({ ...hour, complete: false })),
+});
 
 describe('useWindowPreview', () => {
   it('windowFits is true when daylight is at least the demo length', () => {
@@ -53,6 +57,12 @@ describe('useWindowPreview', () => {
   it('tints the previewed block with its worst hour (a no-go hour inside it makes the block no-go)', () => {
     const { result } = renderHook(() => useWindowPreview(dayWithNoGoMidday, 6, vi.fn()));
     act(() => result.current.previewHour(10)); // → 8 AM–1 PM, which contains the 10 AM no-go hour
+    expect(result.current.selectionStatus).toBe(Status.NoGo);
+  });
+
+  it('tints the previewed block no-go via the fail-safe when its hours are incomplete (no hour is no-go)', () => {
+    const { result } = renderHook(() => useWindowPreview(dayIncompleteReadings, 6, vi.fn()));
+    act(() => result.current.previewHour(10)); // every hour reads go, but the block can't be fully evaluated
     expect(result.current.selectionStatus).toBe(Status.NoGo);
   });
 

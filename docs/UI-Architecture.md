@@ -85,7 +85,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones); renders the inline `StatusLegend` on its heading row. |
 | `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
 | `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status; out-of-window hours dimmed (reads `hour.isInWindow`). |
-| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. Binds to `useWindowPreview` for the hover/click pin selection; a click bubbles `onRequestPin(date, startHour)` up through `ForecastSection`. |
+| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. Binds to `useWindowPreview` for the hover/click pin selection; a click bubbles `onRequestPin(date, startHour, lengthHours)` up through `ForecastSection` (the live demo length rides along to freeze into the pin). |
 | `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. The pin-selection surface: hover/focus previews a centered window (tinted by its status, bracketed on first/last rows), click/tap/Enter commits. |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
