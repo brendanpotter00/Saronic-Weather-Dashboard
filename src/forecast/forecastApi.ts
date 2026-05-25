@@ -16,6 +16,7 @@ import {
 import type { ForecastResponse, MarineResponse } from './responseTypes';
 import type { CombinedForecast } from '../model';
 import { buildCombinedForecast } from './combineForecasts';
+import { simulatedForecastResult, simulateMarineDown } from './simulate'; // DEV-only error-state harness
 
 function forecastUrl(site: Site): string {
   const params = new URLSearchParams({
@@ -95,6 +96,9 @@ export const forecastApi = createApi({
     getCombinedForecast: build.query<CombinedForecast, void>({
       keepUnusedDataFor: CACHE_TTL_SECONDS, // retain ~10 min after last subscriber unmounts
       async queryFn(_arg, _api, _extra, baseQuery) {
+        const simulated = simulatedForecastResult(); // DEV-only ?simulate= harness (no-op in prod)
+        if (simulated) return simulated;
+
         const site = DEFAULT_SITE;
 
         const [forecastRes, marineRes] = await Promise.all([
@@ -118,7 +122,7 @@ export const forecastApi = createApi({
         // Marine degrades gracefully: on a fetch error OR an unexpected body, fall
         // back to null waves so wind/precip/visibility still render.
         const marine =
-          marineRes.error || !isMarineResponse(marineRes.data)
+          simulateMarineDown() || marineRes.error || !isMarineResponse(marineRes.data)
             ? null
             : (marineRes.data as MarineResponse);
         const forecast = forecastRes.data as ForecastResponse;

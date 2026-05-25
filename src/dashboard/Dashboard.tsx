@@ -8,7 +8,11 @@ import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import Button from '@mui/material/Button';
 import { useScoredForecast } from './hooks/useScoredForecast';
+import { FORECAST_ERROR_COPY } from './errorMessage';
+import { maybeThrowForSimulation } from '../forecast/simulate';
 import type { ScoringOptions } from '../scoring/scoring';
 import { scoreNamedWindow } from '../scoring/window';
 import { DashboardHeader } from './components/DashboardHeader';
@@ -27,11 +31,12 @@ import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
 
 export function Dashboard() {
+  maybeThrowForSimulation(); // DEV-only error-state harness: throws on ?simulate=throw (no-op in prod).
   // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
   // 6-hour demo) and echoes them back, which the control then seeds from. Dashboard-wide, lifted
   // out of any single day. Local view state with one owner (mirrors `selectedDate`, no Redux).
   const [windowConfig, setWindowConfig] = useState<ScoringOptions | null>(null);
-  const { scored, isLoading, error } = useScoredForecast(windowConfig ?? undefined);
+  const { scored, isLoading, isError, errorKind, refetch } = useScoredForecast(windowConfig ?? undefined);
   // null = "no explicit choice yet" → fall back to the first day (today). Keyed by the stable
   // date string, not an index, so it survives a refetch that reorders/replaces the array.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -53,11 +58,20 @@ export function Dashboard() {
     );
   }
 
-  if (error || !scored) {
+  if (isError || !scored) {
+    const { title, detail } = FORECAST_ERROR_COPY[errorKind];
     return (
       <Container sx={{ py: { xs: 2, md: 4 } }}>
-        <Alert severity="error">
-          Couldn't load the forecast. Check the connection and reload — a hard reload refetches.
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          <AlertTitle>{title}</AlertTitle>
+          {detail}
         </Alert>
       </Container>
     );

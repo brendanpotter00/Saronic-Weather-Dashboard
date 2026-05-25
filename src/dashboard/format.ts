@@ -29,6 +29,11 @@ export interface DayLabel {
 export function formatDayLabel(dateKey: string): DayLabel {
   const [year, month, day] = dateKey.split('-').map(Number);
   const d = new Date(year, month - 1, day);
+  // A malformed key (Number(undefined) → NaN) makes an Invalid Date, whose getDay() is NaN and
+  // DOW[NaN] is undefined. Degrade to a neutral placeholder rather than render "undefined".
+  if (Number.isNaN(d.getTime())) {
+    return { dow: MISSING_DISPLAY, weekday: MISSING_DISPLAY, dayNum: 0, month: MISSING_DISPLAY };
+  }
   return { dow: DOW[d.getDay()], weekday: WEEKDAY[d.getDay()], dayNum: day, month: MONTH[month - 1] };
 }
 
@@ -49,13 +54,17 @@ function meridiem(hour: number): { h12: number; ap: 'AM' | 'PM' } {
 // start/end time) degrades to the missing dash rather than fabricating "12 AM" from Number('').
 export function formatHourLabel(iso: string): string {
   if (!iso) return MISSING_DISPLAY;
-  const { h12, ap } = meridiem(clockParts(iso).hour);
+  const { hour } = clockParts(iso);
+  if (!Number.isFinite(hour)) return MISSING_DISPLAY; // malformed-but-nonempty ISO → dash, not "NaN AM"
+  const { h12, ap } = meridiem(hour);
   return `${h12} ${ap}`;
 }
 
 // "6:13 AM" — precise, for the exact sunrise/sunset times in the window control's daylight line.
 export function formatClockTime(iso: string): string {
+  if (!iso) return MISSING_DISPLAY;
   const { hour, minute } = clockParts(iso);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return MISSING_DISPLAY;
   const { h12, ap } = meridiem(hour);
   return `${h12}:${String(minute).padStart(2, '0')} ${ap}`;
 }
@@ -96,7 +105,9 @@ const MILES = 'mi';
 // ceiling ("15+ mi") rather than implying false precision; a missing reading (null) is a unit-less
 // "—", distinct from a measured zero.
 export function formatFactorValue(factor: Factor, value: number | null): string {
-  if (value === null) return MISSING_DISPLAY;
+  // null = no reading; a non-finite number (NaN/±Infinity) is bad data that must never render
+  // as "NaN kn". Both collapse to the missing marker so the cell stays honest.
+  if (value === null || !Number.isFinite(value)) return MISSING_DISPLAY;
 
   switch (factor) {
     case Factor.Wind:

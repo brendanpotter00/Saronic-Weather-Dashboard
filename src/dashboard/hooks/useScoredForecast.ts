@@ -6,20 +6,26 @@
 
 import { useMemo } from 'react';
 import { useGetCombinedForecastQuery } from '../../forecast/forecastApi';
+import { classifyForecastError } from '../../forecast/errorKind';
+import type { ForecastErrorKind } from '../../forecast/errorKind';
 import { scoreForecast } from '../../scoring/scoring';
 import type { ScoredForecast, ScoringOptions } from '../../scoring/scoring';
 
 export interface UseScoredForecast {
   scored: ScoredForecast | undefined;
   isLoading: boolean;
-  error: unknown;
+  isError: boolean;
+  // The failure already reduced to a UI-actionable kind (see errorKind.ts), not the raw RTK
+  // error shape — the view maps a kind to copy and never inspects status codes.
+  errorKind: ForecastErrorKind;
+  refetch: () => void;
 }
 
 // `options` carries Tara's dashboard-wide knobs (available window + demo length). Pass nothing
 // and scoring falls back to the product defaults (widest daylight coverage, DEMO_WINDOW_HOURS),
 // so the first render shows sensible values the control then seeds from.
 export function useScoredForecast(options?: ScoringOptions): UseScoredForecast {
-  const { data, isLoading, error } = useGetCombinedForecastQuery();
+  const { data, isLoading, error, refetch } = useGetCombinedForecastQuery();
   const demoWindowHours = options?.demoWindowHours;
   const startHour = options?.availableWindow?.startHour;
   const endHour = options?.availableWindow?.endHour;
@@ -38,5 +44,5 @@ export function useScoredForecast(options?: ScoringOptions): UseScoredForecast {
         : undefined,
     [data, demoWindowHours, startHour, endHour],
   );
-  return { scored, isLoading, error };
+  return { scored, isLoading, isError: error !== undefined, errorKind: classifyForecastError(error), refetch };
 }

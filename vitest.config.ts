@@ -1,4 +1,4 @@
-import { defineConfig, mergeConfig } from 'vitest/config';
+import { defineConfig, mergeConfig, configDefaults } from 'vitest/config';
 import viteConfig from './vite.config';
 
 // Test config is kept separate from vite.config.ts: build and test change for
@@ -11,6 +11,9 @@ export default mergeConfig(
       environment: 'jsdom', // component tests need a DOM
       globals: true, // describe/it/expect without imports; enables jest-dom matchers
       setupFiles: ['./src/test/setup.ts'],
+      // Don't run the duplicate test suites inside sibling git worktrees (separate checkouts
+      // under .claude/) — they inflate the run and aren't this branch's code.
+      exclude: [...configDefaults.exclude, '.claude/**'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],

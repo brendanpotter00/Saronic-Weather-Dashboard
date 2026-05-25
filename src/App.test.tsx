@@ -107,11 +107,39 @@ describe('Dashboard (via App)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('shows an error alert when the forecast fails', () => {
-    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, error: { status: 500 } });
+  it('shows a tailored error alert with a working Retry when the forecast fails', () => {
+    const refetch = vi.fn();
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, error: { status: 500 }, refetch });
     renderApp();
     const alert = screen.getByRole('alert');
-    expect(within(alert).getByText(/couldn't load the forecast/i)).toBeInTheDocument();
+    // 500 → 'server' kind → the server-specific copy (not the generic fallback).
+    expect(within(alert).getByText(/weather service is having trouble/i)).toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('tailors the message to the failure: offline vs rate-limit', () => {
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: { status: 'FETCH_ERROR', error: 'down' },
+      refetch: vi.fn(),
+    });
+    const { rerender } = renderApp();
+    expect(within(screen.getByRole('alert')).getByText(/can't reach the weather service/i)).toBeInTheDocument();
+
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: { status: 429 },
+      refetch: vi.fn(),
+    });
+    rerender(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+    expect(within(screen.getByRole('alert')).getByText(/too many requests/i)).toBeInTheDocument();
   });
 });
 
