@@ -44,7 +44,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 <Dashboard>          owns selectedDate + windowConfig + pinnedWindows + dialogWindow  (src/dashboard/Dashboard.tsx)
         ├─ <DashboardHeader>  (title only)
         ├─ pinnedWindows.map → <PinnedWindowSlot> (one card per pinned window — scoreNamedWindow re-scores each render)
-        ├─ <WindowControls>   (available window + demo length → setWindowConfig)
+        ├─ <DashboardConfigPanel>   (available window + demo length → setWindowConfig)
         ├─ marine-unavailable <Alert> (when !marineAvailable)
         ├─ <HorizonStrip>     → <DayColumn> → <HourLine>   (click → setSelectedDate; out-of-window hours dimmed)
         ├─ <DayDetail>        → <HourRow> → <FactorCell>   (hover/focus previews a centered window; click → onRequestPin)
@@ -57,7 +57,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 - **Selected day and window config are local `useState`**, owned in `Dashboard` (not Redux — both
   are ephemeral view state with one owner). `selectedDate` is the stable `date` string (defaults
   to day 0, today); `windowConfig` is `null` until Tara edits, so scoring falls back to the
-  product defaults and *echoes* them back, and `WindowControls` seeds itself from those echoes.
+  product defaults and *echoes* them back, and `DashboardConfigPanel` seeds itself from those echoes.
 
 ## Component map (`src/dashboard/`, organized by kind: shell + `format.ts` at root, `hooks/`, `components/`)
 
@@ -68,7 +68,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day/hour labels: `formatHourLabel`, `formatClockTime`, `formatHourOfDay`). |
 | `components/StatusBadge.tsx` | The go/caution/no-go pill used in the legend (label + colour from the status map). |
 | `components/DashboardHeader.tsx` | Title (site-named) only. |
-| `components/WindowControls.tsx` | The dashboard-wide config bar: available-window + demo-length pickers (clamped to `daylightBounds`), the exact daylight envelope line, and the live candidate count. Reports edits up via `onChange`; holds no state. |
+| `components/DashboardConfigPanel.tsx` | The dashboard-wide config bar: available-window + demo-length pickers (clamped to `daylightBounds`), the exact daylight envelope line, and the live candidate count. Reports edits up via `onChange`; holds no state. |
 | `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
 | `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
 | `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
@@ -94,7 +94,7 @@ Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
   (out of scope, and `scoring.ts` computes the *best achievable* tier without naming its hours).
   The UI dims the *available window* (a band Tara sets) but never highlights a chosen demo-length
   block inside it. Keep it that way unless scope changes.
-- **Config lives at the top, applied dashboard-wide.** `WindowControls` owns the *available window*
+- **Config lives at the top, applied dashboard-wide.** `DashboardConfigPanel` owns the *available window*
   (the clock-hour band, defaulting to the actual daylight **hours** the forecast covers, so the
   picker never offers an hour with no reading) and the *demo length* (`DEMO_WINDOW_HOURS` default,
   adjustable down to `DEMO_MIN_HOURS`). Both feed the scoring pass, so the horizon + badges
@@ -140,7 +140,7 @@ These are intentionally **not built**, but the structure is ready so each is add
 
 1. ~~**Configurable demo-window length.**~~ **Built.** `scoreForecast(forecast, { demoWindowHours,
    availableWindow })` takes both as arguments; `useScoredForecast(windowConfig)` passes them from
-   `Dashboard` state, set via `WindowControls`. (See "Cross-layer changes" above.)
+   `Dashboard` state, set via `DashboardConfigPanel`. (See "Cross-layer changes" above.)
 
 2. ~~**Pin a chosen window to the top.**~~ **Built.** The interaction is **centered hover** in the
    hourly table — point at the middle of a stretch, the fixed-length block centers + tints by
@@ -166,12 +166,12 @@ These are intentionally **not built**, but the structure is ready so each is add
    `Attribution` already renders resolved coords, so it generalizes for free.
 
 4. **Slide-out config sidebar.** The window/demo config currently lives in the always-visible
-   `WindowControls` bar (other treatments — modal, accordion, drawer — were prototyped in
+   `DashboardConfigPanel` bar (other treatments — modal, accordion, drawer — were prototyped in
    `docs/prototype-window-config.html`). If config grows (city + per-city thresholds), a MUI
    `<Drawer>` toggled from the header is the seam; `Dashboard` owns layout and config still flows
    through `useScoredForecast` args.
 
 **The unifying seam:** every deferred item is "more inputs into `useScoredForecast` /
-`scoreForecast`" plus "more chrome at the top (header or `WindowControls`)." Keep scoring
+`scoreForecast`" plus "more chrome at the top (header or `DashboardConfigPanel`)." Keep scoring
 parameterizable and the top of the page as the control surface, and the components below stay
 dumb and unchanged.

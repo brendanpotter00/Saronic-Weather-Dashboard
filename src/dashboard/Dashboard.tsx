@@ -21,7 +21,7 @@ import {
   addPinnedWindow,
   removePinnedWindow,
 } from './pinnedWindows';
-import { WindowControls } from './components/WindowControls';
+import { DashboardConfigPanel } from './components/DashboardConfigPanel';
 import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
@@ -100,7 +100,7 @@ export function Dashboard() {
             />
           );
         })}
-        <WindowControls
+        <DashboardConfigPanel
           availableWindow={scored.availableWindow}
           daylightBounds={scored.daylightBounds}
           daylightEnvelope={scored.daylightEnvelope}
