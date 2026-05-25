@@ -7,10 +7,54 @@ import ButtonBase from '@mui/material/ButtonBase';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { styled, alpha } from '@mui/material/styles';
 import type { ScoredDay } from '../../scoring/scoring';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
+import { STATUS_TO_PALETTE, STATUS_LABEL, type StatusPaletteKey } from '../../theme/statusColor';
 import { HourLine } from './HourLine';
 import { formatDayLabel } from '../format';
+
+// A candidate day wears a soft status-tinted band so the valid set reads as a group. The fill is
+// faint (resting) and deepens on hover; both stay below the date-number tint so the strip never
+// becomes a wall of colour.
+const BAND_ALPHA = 0.1;
+const BAND_HOVER_ALPHA = 0.16;
+const COLUMN_WIDTH_XS_PX = 56; // fixed column width when the horizon scrolls on phones
+
+interface DayCellProps {
+  paletteKey: StatusPaletteKey; // day.badge mapped through STATUS_TO_PALETTE
+  candidate: boolean; // day.isCandidate — owns the COLOUR channel (tint + border)
+  selected: boolean; // owns the black selection RING (boxShadow); composes with the tint
+}
+
+// Candidacy lives on the COLOUR channel; selection is the black ring. They compose: a selected
+// candidate keeps its tint AND gains the ring, so "valid" survives selection. A selected
+// non-candidate falls back to the neutral grey so it still reads as the focused day.
+const DayCell = styled(ButtonBase, {
+  shouldForwardProp: (prop) => !['paletteKey', 'candidate', 'selected'].includes(prop as string),
+})<DayCellProps>(({ theme, paletteKey, candidate, selected }) => {
+  const bandColor = theme.palette[paletteKey].main;
+  return {
+    flex: `0 0 ${COLUMN_WIDTH_XS_PX}px`, // phones: fixed width, the row scrolls
+    [theme.breakpoints.up('sm')]: { flex: 1 }, // desktop: equal share
+    minWidth: 0,
+    padding: theme.spacing(1),
+    borderRadius: theme.shape.borderRadius,
+    display: 'block',
+    // 1px border reserved on every column so colouring a candidate's edge can't shift the row.
+    border: '1px solid',
+    borderColor: candidate ? bandColor : 'transparent',
+    transition: theme.transitions.create(['background-color', 'box-shadow', 'border-color']),
+    backgroundColor: candidate
+      ? alpha(bandColor, BAND_ALPHA)
+      : selected
+        ? theme.palette.action.selected
+        : 'transparent',
+    boxShadow: selected ? `inset 0 0 0 2px ${theme.palette.primary.main}` : 'none',
+    '&:hover': {
+      backgroundColor: candidate ? alpha(bandColor, BAND_HOVER_ALPHA) : theme.palette.action.hover,
+    },
+  };
+});
 
 interface DayColumnProps {
   day: ScoredDay;
@@ -21,24 +65,17 @@ interface DayColumnProps {
 
 export function DayColumn({ day, isToday, isSelected, onSelect }: DayColumnProps) {
   const { dow, dayNum } = formatDayLabel(day.date);
-  const badgeColor = `${STATUS_TO_PALETTE[day.badge]}.main`;
+  const paletteKey = STATUS_TO_PALETTE[day.badge];
+  const badgeColor = `${paletteKey}.main`;
 
   return (
-    <ButtonBase
+    <DayCell
+      paletteKey={paletteKey}
+      candidate={day.isCandidate}
+      selected={isSelected}
       onClick={() => onSelect(day.date)}
       aria-pressed={isSelected}
-      aria-label={`${dow} ${dayNum} — ${STATUS_LABEL[day.badge]}`}
-      sx={{
-        flex: { xs: '0 0 56px', sm: 1 }, // fixed width when the row scrolls on phones; equal share otherwise
-        minWidth: 0,
-        p: 1,
-        borderRadius: 1,
-        display: 'block',
-        transition: 'background-color .15s, box-shadow .15s',
-        bgcolor: isSelected ? 'action.selected' : 'transparent',
-        boxShadow: isSelected ? (t) => `inset 0 0 0 2px ${t.palette.primary.main}` : 'none',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
+      aria-label={`${dow} ${dayNum} — ${STATUS_LABEL[day.badge]}${day.isCandidate ? ' · valid demo window' : ''}`}
     >
       <Stack spacing={0.75} sx={{ width: '100%' }}>
         <Box sx={{ textAlign: 'center', lineHeight: 1.1 }}>
@@ -54,6 +91,6 @@ export function DayColumn({ day, isToday, isSelected, onSelect }: DayColumnProps
         </Box>
         <HourLine hours={day.hours} />
       </Stack>
-    </ButtonBase>
+    </DayCell>
   );
 }

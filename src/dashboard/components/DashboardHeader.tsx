@@ -1,7 +1,7 @@
 // The top context band: the site-named title (data-driven off DEFAULT_SITE, so it reads as
 // "<place> Weather Dashboard" and updates for free when multi-city lands) on the left, and the
 // data Source (Attribution) tucked top-right so Tara can see provenance at a glance. The window
-// and demo-length controls live just below in WindowControls; the status key rides the
+// and demo-length controls live just below in DashboardConfigPanel; the status key rides the
 // "10-Day Forecast" heading row.
 
 import Box from '@mui/material/Box';

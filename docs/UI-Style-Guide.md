@@ -14,6 +14,21 @@ ever disagree, the code wins — update this doc.
 - **Status colour comes from one place.** Never hardcode green/amber/red. Map the domain `Status`
   through `STATUS_TO_PALETTE` (`src/theme/statusColor.ts`) and let MUI resolve it.
 
+## Styling: `sx` by default, `styled()` when it turns conditional
+
+Default to inline `sx` — it keeps styling next to the element. But when a component's styling
+branches on props or state (a candidate band, a selection ring, a status tint), packing those
+ternaries into an `sx={(theme) => {…}}` callback buries the JSX. At that point lift the styling
+into a `styled(Component)` defined above the component, driven by explicit boolean/enum props:
+
+- Keep pulling tokens — `theme.palette`, `theme.spacing()`, `theme.shape.borderRadius`, `alpha()`,
+  `STATUS_TO_PALETTE`. `styled()` changes *where* the conditional lives, not the no-magic-px/hex rule.
+- Filter custom props with `shouldForwardProp` so they don't leak onto the DOM (React warns on
+  unknown attributes).
+- The JSX should then read as plain markup with state passed as props.
+
+Canonical examples: `DayColumn` (`DayCell`) and `HourRow` (`HourRowRoot`). Everything else stays on `sx`.
+
 ## Palette — black & white + status (light)
 
 Defined in `src/theme/theme.ts`. The base is near-monochrome so the *only* saturated colour in

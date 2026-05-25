@@ -11,7 +11,7 @@ Clarifying Questions:
 7. Are there any other secondary weather factors we need to consider? - Not right now. These are the main factors.
 8. Do you like having contextual knowledge of other weather factors? Like temp? - For the 10 sec no-go decision, no. I want a simple quick dashboard. Later maybe temp for audience comfort, but out of scope right now.
 9. When there is a block of time within bounds, but the rest of the day is outside of the bounds, how should I handle it? - Tara only cares if there is a valid time window, then she can dive into the details of which contigious hours are valid
-10. What is the visibility threshold? - 10 miles is ideal and less than 3 is a no go 
+10. What is the visibility threshold? - 6 miles or more is go, 3 to 6 is caution, and less than 3 is a no go 
 
 Key Insights: 
 1. We should exclude night forecast. Only daylight hours with 6 hours being the demo time window interval
@@ -25,7 +25,7 @@ Go / Iffy / No-go Thresholds (full detail + unit notes in API-Endpoints.md §3):
 | Wind | wind_speed_10m (kn) | < 15 | 15–20 | > 20 |
 | Wave | wave_height (ft) | < 2 | 2–4 | > 4 |
 | Precipitation | precipitation (mm) | 0 (none) | — | any rain |
-| Visibility | visibility (m) | ≥ 10 mi (~16,093 m) | 3–10 mi (~4,828–16,093 m) | < 3 mi (< ~4,828 m) |
+| Visibility | visibility (m) | ≥ 6 mi (~9,656 m) | 3–6 mi (~4,828–9,656 m) | < 3 mi (< ~4,828 m) |
 
 Base Logic Rule: worst factor wins. Hour status = worst of its 4 factors → window
 status = worst hour in the contiguous daylight window → day badge = best available

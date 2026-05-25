@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pin a demo window — centered hover</title>
+<style>
+  /* ----- Tokens mirror src/theme/theme.ts (light, near-monochrome + status) ----- */
+  :root{
+    --canvas:#fafafa; --paper:#ffffff; --line:#e0e0e0;
+    --ink:#0a0a0a; --ink-2:#5c5c5c;
+    --go:#2e7d32; --cau:#ed6c02; --no:#c62828;
+    --go-bg:#e7f0e8; --cau-bg:#fbeede; --no-bg:#f7e3e3;
+    --unit:8px; --radius:8px; --dim:.4;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--canvas);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:64px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+
+  /* ----- Typography helpers (match MUI variant= roles) ----- */
+  .overline{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .h1{font-size:1.9rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .h3{font-size:1.05rem;font-weight:700}
+  .caption{font-size:.75rem;color:var(--ink-2)}
+  .muted{color:var(--ink-2)}
+
+  header.top{padding:28px 0 6px}
+  header.top .h1{margin-top:6px}
+  header.top .sub{color:var(--ink-2);font-size:.9rem;margin-top:8px;max-width:64ch}
+
+  .seclabel{margin:26px 0 10px;display:flex;align-items:center;gap:12px}
+  .seclabel::after{content:"";flex:1;height:1px;background:var(--line)}
+  .seclabel .overline{margin:0}
+
+  /* ----- Card (MuiCard outlined) ----- */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius)}
+
+  .modenote{font-size:.84rem;color:var(--ink-2);line-height:1.65}
+  .modenote code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;background:#f1f1f1;padding:1px 5px;border-radius:4px}
+
+  /* ===== PINNED-WINDOW SLOT (top of dashboard) ===== */
+  #pinned{margin-top:14px}
+  .pinned-card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--paper);animation:drop .4s cubic-bezier(.2,.8,.2,1)}
+  @keyframes drop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+  .pinned-card .strip{height:5px;width:100%}
+  .pc-body{padding:18px 20px;display:grid;grid-template-columns:1fr auto auto;gap:24px;align-items:center}
+  .pc-meta .tag{display:inline-flex;align-items:center;gap:7px;font-size:.66rem;font-weight:700;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-2);margin-bottom:8px}
+  .pc-meta .tag svg{width:13px;height:13px}
+  .pc-meta .when{font-size:1.2rem;font-weight:800;line-height:1.2}
+  .pc-meta .win{font-size:.85rem;color:var(--ink-2);margin-top:2px}
+  .pc-meta .tminus{margin-top:9px;font-size:.72rem;color:var(--ink-2)}
+  .pc-meta .tminus b{color:var(--ink);font-weight:700}
+  .pc-status{text-align:center;min-width:118px}
+  .pc-status .word{font-size:clamp(1.9rem,5vw,2.6rem);font-weight:800;line-height:.95;letter-spacing:-.02em}
+  .pc-factors{display:flex;gap:8px;flex-wrap:wrap}
+  .pcf{min-width:64px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:#fcfcfc}
+  .pcf .n{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .pcf .v{font-size:1.05rem;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+  .pc-actions{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding-top:14px;margin-top:4px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .pc-actions .note{font-size:.72rem;color:var(--ink-2);max-width:46ch}
+
+  /* ----- Buttons ----- */
+  .btn{font-family:var(--font);font-size:.8rem;font-weight:600;padding:8px 14px;border-radius:6px;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;transition:.14s;white-space:nowrap}
+  .btn:hover{background:#f4f4f4}
+  .btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.dark:hover{filter:brightness(1.15)}
+  .btn.ghost{border-color:transparent;color:var(--ink-2)}
+  .btn.ghost:hover{color:var(--no);background:transparent}
+
+  /* ===== DAY DETAIL — hourly table (the interaction surface) ===== */
+  .detail-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:16px 18px 4px;flex-wrap:wrap}
+  .detail-head .word{font-size:1.6rem;font-weight:800;letter-spacing:-.01em;line-height:1}
+  .detail-head .day{font-size:.85rem;color:var(--ink-2)}
+  .detail-sum{padding:2px 18px 12px;font-size:.85rem;color:var(--ink-2)}
+
+  /* grid mirrors HourRow HOUR_GRID = '6px 56px repeat(4, 1fr)' */
+  .htable{position:relative;padding:0 10px 12px;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+  .hgrid{display:grid;grid-template-columns:6px 56px repeat(4,1fr);column-gap:12px;align-items:center}
+  .hhead{padding:8px 8px 6px;color:var(--ink-2)}
+  .hhead span{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+  .colr{text-align:right}
+  .hrow{padding:7px 8px;border-radius:6px;font-size:.82rem;border:2px solid transparent;cursor:pointer;transition:background .1s}
+  .hrow .bar{width:6px;height:22px;border-radius:3px}
+  .hrow .time{color:var(--ink-2);font-weight:600}
+  .hrow .hv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .hrow:not(.disabled):hover{background:#f6f7f9}
+
+  /* highlighted demo block (a contiguous N-hour band), tinted by its go/no-go status */
+  .hrow.hl{background:#eef2f7;border-left-color:var(--ink);border-right-color:var(--ink)}
+  .hrow.hl-first{border-top-left-radius:8px;border-top-right-radius:8px}
+  .hrow.hl-last{border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+  .hrow.hl-go{background:var(--go-bg);border-left-color:var(--go);border-right-color:var(--go)}
+  .hrow.hl-cau{background:var(--cau-bg);border-left-color:var(--cau);border-right-color:var(--cau)}
+  .hrow.hl-no{background:var(--no-bg);border-left-color:var(--no);border-right-color:var(--no)}
+  .hrow.hl-first.hl-go{border-top-color:var(--go)}.hrow.hl-first.hl-cau{border-top-color:var(--cau)}.hrow.hl-first.hl-no{border-top-color:var(--no)}
+  .hrow.hl-last.hl-go{border-bottom-color:var(--go)}.hrow.hl-last.hl-cau{border-bottom-color:var(--cau)}.hrow.hl-last.hl-no{border-bottom-color:var(--no)}
+
+  /* rows that can't seat a full window (only if the day is shorter than the demo) */
+  .hrow.disabled{opacity:var(--dim);cursor:not-allowed}
+
+  /* floating "pin this window" chip, anchored to the block's first row */
+  #chip{position:absolute;right:14px;display:none;align-items:center;gap:7px;z-index:5;
+    background:var(--ink);color:#fff;font-size:.74rem;font-weight:700;padding:6px 12px;border-radius:999px;
+    box-shadow:0 6px 18px -8px rgba(0,0,0,.5);cursor:pointer;white-space:nowrap;pointer-events:auto}
+  #chip.show{display:inline-flex}
+  #chip .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+
+  /* status helpers */
+  .s-go{color:var(--go)} .s-cau{color:var(--cau)} .s-no{color:var(--no)}
+  .bg-go{background:var(--go)} .bg-cau{background:var(--cau)} .bg-no{background:var(--no)}
+
+  /* ===== MODAL ("Pin this time window") ===== */
+  .scrim{position:fixed;inset:0;background:rgba(10,10,10,.42);z-index:40;display:none}
+  .scrim.show{display:block}
+  .modal{position:fixed;z-index:50;left:50%;top:78px;transform:translateX(-50%);width:calc(100% - 32px);max-width:460px;
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 30px 70px -24px rgba(0,0,0,.5);
+    display:none;animation:pop .22s cubic-bezier(.2,.8,.2,1)}
+  .modal.show{display:block}
+  @keyframes pop{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%)}}
+  .m-strip{height:5px;width:100%;border-radius:10px 10px 0 0}
+  .m-body{padding:20px 22px}
+  .m-eyebrow{font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+  .m-title{font-size:1.25rem;font-weight:800;margin-top:6px}
+  .m-win{font-size:.9rem;color:var(--ink-2);margin-top:2px}
+  .m-status{display:flex;align-items:baseline;gap:10px;margin:16px 0 4px}
+  .m-status .word{font-size:1.7rem;font-weight:800;letter-spacing:-.01em;line-height:1}
+  .m-status .rec{font-size:.8rem;color:var(--ink-2)}
+  .m-factors{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+  .m-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--line)}
+
+  .footnote{margin-top:30px;font-size:.78rem;color:var(--ink-2);line-height:1.75;border-top:1px solid var(--line);padding-top:16px}
+  .footnote b{color:var(--ink);font-weight:600}
+  .footnote code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74rem;background:#f1f1f1;padding:1px 5px;border-radius:4px}
+  .footnote ul{margin:8px 0 0 18px}
+  .footnote li{margin:3px 0}
+
+  @media(max-width:560px){
+    .pc-body{grid-template-columns:1fr;gap:14px}
+    .pc-status{text-align:left}
+    .pc-actions{flex-direction:column;align-items:stretch}
+    .pc-actions .btn{width:100%;text-align:center}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="overline">Gulf Test Range · Gulfport, MS · prototype</div>
+    <div class="h1">Pin a demo window from the hourly table</div>
+    <div class="sub">Tara picks a concrete demo window straight off a day's hourly rows and pins it to
+      the top, then watches its go/no-go status firm up each morning as the date approaches. The demo
+      <b>length is fixed</b> (set in Window Controls), so picking a window is just choosing where it
+      sits: point at the middle of the stretch you want and the fixed-length block centers on it,
+      then click to confirm and pin.</div>
+  </header>
+
+  <!-- ===================== HOW IT WORKS ===================== -->
+  <div class="seclabel"><span class="overline">How it works · centered hover</span></div>
+  <div class="modenote" id="modeNote"></div>
+
+  <!-- ===================== PINNED SLOT ===================== -->
+  <div id="pinned"></div>
+
+  <!-- ===================== DAY DETAIL TABLE ===================== -->
+  <div class="seclabel"><span class="overline">Selected day · hourly detail</span></div>
+  <div class="card" id="detail"></div>
+
+  <!-- ===================== MODAL ===================== -->
+  <div class="scrim" id="scrim"></div>
+  <div class="modal" id="modal"></div>
+
+  <div class="footnote" id="footnote"></div>
+</div>
+
+<script>
+/* ---------- thresholds (mirror src/scoring/weatherThresholds.ts) ---------- */
+function windTier(kn){return kn>20?2:kn>=15?1:0;}        // <15 go · 15–20 caution · >20 no-go
+function waveTier(ft){return ft>4?2:ft>=2?1:0;}          // <2 · 2–4 · >4
+function precipTier(mm){return mm>0.05?2:0;}             // any rain = no-go
+function visTier(mi){return mi<3?2:mi<10?1:0;}           // ≥10 · 3–10 · <3
+function hourTier(x){return Math.max(windTier(x.wind),waveTier(x.wave),precipTier(x.precip),visTier(x.vis));}
+const STATUS=[{w:'GO',c:'go'},{w:'CAUTION',c:'cau'},{w:'NO-GO',c:'no'}];
+
+/* ---------- window rules ---------- */
+const FIRST_HOUR=6, LAST_HOUR=19;   // daylight bounds shown in the table
+const DEMO_LEN=6;                   // fixed demo length (from Window Controls)
+const LEAD=Math.floor((DEMO_LEN-1)/2); // hours of the block that sit BEFORE the hovered hour (lean later)
+
+/* ---------- deterministic mock day (ramp: AM clear, PM wind builds past 20) ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const PROFILE={windBase:10,windAdd:16,waveBase:1.4,waveAdd:.5,rain:false,vis:14,ramp:true};
+function genHours(p,seed){
+  const rng=mulberry32(seed),hours=[];
+  for(let h=FIRST_HOUR;h<=LAST_HOUR;h++){
+    const ramp=p.ramp?Math.max(0,(h-11)/8):0;
+    const wind=Math.max(3,p.windBase+(p.windAdd||0)*ramp+(rng()*2-1)*1.1);
+    const wave=Math.max(.4,p.waveBase+(p.waveAdd||0)*ramp+(rng()*2-1)*.22);
+    const precip=p.rain===true?Math.max(0.1,.9*(.5+rng())):0;
+    const vis=Math.max(.5,Math.min(16,p.vis+(rng()*1.2-.6)));
+    hours.push({h,wind,wave,precip,vis});
+  }
+  return hours;
+}
+const HOURS=genHours(PROFILE,42);
+/* mock scheduled day ~9 days out, to show the "watch it as the date approaches" use case */
+const SCHEDULED=(()=>{const d=new Date();d.setDate(d.getDate()+9);return d;})();
+const DOWFULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS_OUT=Math.round((SCHEDULED-new Date())/86400000);
+
+/* ---------- formatting ---------- */
+function fmtH(h){const ap=h<12?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+' '+ap;}
+function dayLabel(){return `${DOWFULL[SCHEDULED.getDay()]}, ${MON[SCHEDULED.getMonth()]} ${SCHEDULED.getDate()}`;}
+
+/* ---------- roll a window up to a status + worst-in-window factor readings ---------- */
+function summarize(start){
+  const w=HOURS.filter(x=>x.h>=start&&x.h<=start+DEMO_LEN-1);
+  const maxWind=Math.max(...w.map(x=>x.wind));
+  const maxWave=Math.max(...w.map(x=>x.wave));
+  const maxPrecip=Math.max(...w.map(x=>x.precip));
+  const minVis=Math.min(...w.map(x=>x.vis));
+  const factors=[
+    {k:'Wind',t:windTier(maxWind),v:maxWind.toFixed(0),u:'kn'},
+    {k:'Wave',t:waveTier(maxWave),v:maxWave.toFixed(1),u:'ft'},
+    {k:'Rain',t:precipTier(maxPrecip),v:maxPrecip<0.06?'none':maxPrecip.toFixed(2),u:maxPrecip<0.06?'':'in'},
+    {k:'Vis', t:visTier(minVis),v:minVis>=15.5?'15+':minVis.toFixed(0),u:'mi'}
+  ];
+  const overall=Math.max(...factors.map(f=>f.t));
+  const lim=factors.slice().sort((a,b)=>b.t-a.t)[0];
+  return {factors,overall,lim};
+}
+function windowNote(start){
+  const s=summarize(start);
+  if(s.overall===0) return `All ${DEMO_LEN} hours clear — a valid demo window.`;
+  if(s.overall===1) return `Workable — runs iffy on ${s.lim.k.toLowerCase()}, no hard limit breached.`;
+  return `${s.lim.k} ${s.lim.v} ${s.lim.u} breaks this window.`;
+}
+
+/* ---------- centered block-start resolution ----------
+   Center the fixed-length block on the hovered hour. With an even length there's no exact
+   center, so we lean later: LEAD hours sit before the hovered hour, the rest after. Near the
+   edges we CLAMP into the daylight bounds, so the top rows grab the dawn window and the bottom
+   rows the dusk window — every row stays pinnable. Returns null only if the day has fewer than
+   DEMO_LEN daylight hours (then there is no valid window at all). */
+function centeredBlockStart(hoveredHour){
+  if(LAST_HOUR - FIRST_HOUR + 1 < DEMO_LEN) return null;
+  const start = hoveredHour - LEAD;
+  return Math.max(FIRST_HOUR, Math.min(start, LAST_HOUR - DEMO_LEN + 1));
+}
+
+/* ---------- state ---------- */
+const STATE={pinned:null,hoverStart:null};
+
+/* ---------- render: day detail + hourly table ---------- */
+function renderDetail(){
+  const bestStart=FIRST_HOUR; // earliest window drives the day word/summary
+  const s=summarize(bestStart);
+  const rows=HOURS.map(x=>{
+    const t=hourTier(x), c=STATUS[t].c;
+    const tint=(val,ft)=>`<span class="hv ${STATUS[ft].c==='go'?'':'s-'+STATUS[ft].c}">${val}</span>`;
+    // edge-clamping means every row maps to a pinnable window; only a day shorter than the demo disables
+    const disabled = centeredBlockStart(x.h) === null;
+    return `<div class="hrow hgrid${disabled?' disabled':''}" data-hour="${x.h}" title="${fmtH(x.h)}">
+      <span class="bar bg-${c}"></span>
+      <span class="time">${fmtH(x.h)}</span>
+      ${tint(x.wind.toFixed(0),windTier(x.wind))}
+      ${tint(x.wave.toFixed(1),waveTier(x.wave))}
+      ${tint(x.precip<0.06?'—':x.precip.toFixed(2),precipTier(x.precip))}
+      ${tint(x.vis>=15.5?'15+':x.vis.toFixed(0),visTier(x.vis))}
+    </div>`;
+  }).join('');
+
+  document.getElementById('detail').innerHTML=`
+    <div class="detail-head">
+      <div>
+        <div class="word s-${STATUS[s.overall].c}">${STATUS[s.overall].w}</div>
+        <div class="day">${dayLabel()} · daylight ${fmtH(FIRST_HOUR)}–${fmtH(LAST_HOUR)} CT</div>
+      </div>
+      <div class="caption">Best window today: ${windowNote(bestStart)}</div>
+    </div>
+    <div class="detail-sum muted">Point at the middle of your demo — the ${DEMO_LEN}-hour block centers on the hovered hour and tints by its status.</div>
+    <div class="htable" id="htable">
+      <div class="hrow hgrid hhead">
+        <span></span><span>Time</span>
+        <span class="colr">Wind kn</span><span class="colr">Wave ft</span>
+        <span class="colr">Rain in</span><span class="colr">Vis mi</span>
+      </div>
+      ${rows}
+      <div id="chip"><span class="dot" id="chipDot"></span><span id="chipLabel"></span></div>
+    </div>`;
+  wireTable();
+}
+
+/* ---------- highlight the current block (status-tinted) ---------- */
+function paintBlock(start){
+  const rows=[...document.querySelectorAll('#htable .hrow[data-hour]')];
+  rows.forEach(r=>r.classList.remove('hl','hl-first','hl-last','hl-go','hl-cau','hl-no'));
+  const chip=document.getElementById('chip');
+  if(start===null){chip.classList.remove('show');return;}
+  const end=start+DEMO_LEN-1;
+  const st=STATUS[summarize(start).overall];   // the window's rolled-up status drives the tint
+  let firstEl=null;
+  rows.forEach(r=>{
+    const h=+r.dataset.hour;
+    if(h>=start&&h<=end){
+      r.classList.add('hl','hl-'+st.c);
+      if(h===start){r.classList.add('hl-first');firstEl=r;}
+      if(h===end)r.classList.add('hl-last');
+    }
+  });
+  if(firstEl){
+    chip.classList.add('show');
+    document.getElementById('chipDot').className='dot bg-'+st.c;
+    document.getElementById('chipLabel').textContent=`Pin ${fmtH(start)} – ${fmtH(end)} ▸`;
+    chip.style.top=(firstEl.offsetTop+5)+'px';
+  }
+}
+
+/* ---------- table wiring (centered hover + click/tap to commit) ---------- */
+function wireTable(){
+  const table=document.getElementById('htable');
+  const rowFromEvent=e=>{const r=e.target.closest('.hrow[data-hour]');return r&&!r.classList.contains('disabled')?+r.dataset.hour:null;};
+
+  table.addEventListener('mousemove',e=>{
+    const h=rowFromEvent(e);
+    const start = h===null ? null : centeredBlockStart(h);
+    STATE.hoverStart=start; paintBlock(start);
+  });
+  table.addEventListener('mouseleave',()=>{STATE.hoverStart=null;paintBlock(null);});
+
+  // click / tap = commit (works for mouse and touch; tap is also the "preview")
+  table.addEventListener('click',e=>{
+    if(e.target.closest('#chip'))return; // chip handles its own click
+    const h=rowFromEvent(e);
+    if(h===null)return;
+    const start=centeredBlockStart(h);
+    if(start!==null)openModal(start);
+  });
+  document.getElementById('chip').addEventListener('click',()=>{if(STATE.hoverStart!==null)openModal(STATE.hoverStart);});
+}
+
+/* ---------- modal ---------- */
+function openModal(start){
+  const end=start+DEMO_LEN-1;
+  const s=summarize(start);
+  const st=STATUS[s.overall];
+  const factors=s.factors.map(f=>`<div class="pcf"><div class="n">${f.k}</div>
+    <div class="v ${STATUS[f.t].c==='go'?'':'s-'+STATUS[f.t].c}">${f.v}<small style="font-size:.6rem;color:var(--ink-2);font-weight:600">${f.u?' '+f.u:''}</small></div></div>`).join('');
+  document.getElementById('modal').innerHTML=`
+    <div class="m-strip bg-${st.c}"></div>
+    <div class="m-body">
+      <div class="m-eyebrow">Pin this time window</div>
+      <div class="m-title">${dayLabel()}</div>
+      <div class="m-win">${fmtH(start)} – ${fmtH(end)} CT · ${DEMO_LEN}-hour demo</div>
+      <div class="m-status"><span class="word s-${st.c}">${st.w}</span><span class="rec">${windowNote(start)}</span></div>
+      <div class="m-factors">${factors}</div>
+    </div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn dark" onclick="confirmPin(${start})">Pin this window</button>
+    </div>`;
+  document.getElementById('scrim').classList.add('show');
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('scrim').classList.remove('show');document.getElementById('modal').classList.remove('show');}
+document.getElementById('scrim').addEventListener('click',closeModal);
+
+function confirmPin(start){STATE.pinned={start};closeModal();renderPinned();window.scrollTo({top:0,behavior:'smooth'});}
+function clearPin(){STATE.pinned=null;renderPinned();}
+function editPin(){if(STATE.pinned)openModal(STATE.pinned.start);}
+
+/* ---------- render: pinned card ---------- */
+function renderPinned(){
+  const host=document.getElementById('pinned');
+  if(!STATE.pinned){host.innerHTML='';return;}
+  const {start}=STATE.pinned, end=start+DEMO_LEN-1;
+  const s=summarize(start), st=STATUS[s.overall];
+  const factors=s.factors.map(f=>`<div class="pcf"><div class="n">${f.k}</div>
+    <div class="v ${STATUS[f.t].c==='go'?'':'s-'+STATUS[f.t].c}">${f.v}<small style="font-size:.6rem;color:var(--ink-2);font-weight:600">${f.u?' '+f.u:''}</small></div></div>`).join('');
+  host.innerHTML=`<div class="pinned-card">
+    <div class="strip bg-${st.c}"></div>
+    <div class="pc-body">
+      <div class="pc-meta">
+        <div class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Scheduled demo window</div>
+        <div class="when">${dayLabel()}</div>
+        <div class="win">${fmtH(start)} – ${fmtH(end)} CT · ${DEMO_LEN}-hour demo</div>
+        <div class="tminus"><b>T‑minus ${DAYS_OUT} days</b> · re-scored each morning as the forecast firms up</div>
+      </div>
+      <div class="pc-status"><div class="word s-${st.c}">${st.w}</div></div>
+      <div class="pc-factors">${factors}</div>
+      <div class="pc-actions">
+        <span class="note">Pinned to the top so Tara glances at it each morning and watches the status trend toward the date.</span>
+        <div>
+          <button class="btn" onclick="editPin()">Edit window</button>
+          <button class="btn ghost" onclick="clearPin()">Unpin</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- explanatory note + footnote ---------- */
+document.getElementById('modeNote').innerHTML=`Point at the <b>middle</b> of the stretch you want on the rows below — the fixed
+  ${DEMO_LEN}-hour block centers on the hovered hour and <b>tints by its go/no-go status</b>, so you see whether it holds up
+  <i>before</i> you commit. It leans slightly later (the hovered hour sits ${LEAD} ${LEAD===1?'hour':'hours'} in), and near
+  dawn/dusk it clamps to the earliest/latest window so every row is pinnable. Click the block (or the chip) to open the confirm;
+  on touch, tapping a row does the same.`;
+
+document.getElementById('footnote').innerHTML=`
+  <b>Recommendation — centered hover.</b> Because the demo length is fixed by Window Controls, picking a window is just choosing
+  where it sits, so "aim at the middle of the good stretch → the ${DEMO_LEN}-hour block drops around it → confirm" matches how
+  Tara reads the day. Hover is desktop-only, so the <b>commit is always click/tap → confirm</b> — it degrades cleanly to touch.
+  <ul>
+    <li><b>Centered ≠ start row:</b> the hovered hour sits ${LEAD} ${LEAD===1?'hour':'hours'} into the block, so the band extends
+      above the cursor. The status tint + bracket + the chip's start–end times carry that, so the boundaries stay legible.</li>
+    <li><b>Edges clamp</b> to the earliest / latest valid window instead of going dead, so the dawn (${fmtH(FIRST_HOUR)}–${fmtH(FIRST_HOUR+DEMO_LEN-1)})
+      and dusk (${fmtH(LAST_HOUR-DEMO_LEN+1)}–${fmtH(LAST_HOUR)}) windows are one hover away.</li>
+    <li><b>React port:</b> add <code>pinnedWindow: { date, startHour } | null</code> in <code>Dashboard.tsx</code>
+      (length from <code>demoWindowHours</code>) → render into <code>PinnedWindowSlot</code>; local <code>hoverStartHour</code>
+      in <code>DayDetail</code>; a <code>PinConfirmDialog</code> (MUI <code>Dialog</code>).</li>
+    <li><b>Shape data low:</b> add <code>scoreNamedWindow(day, startHour, lengthHours)</code> in <code>src/scoring/</code>
+      returning the block's status + worst-in-window readings, so the pinned card stays dumb and re-derives on every refetch.
+      Reuse <code>formatHourLabel</code>/<code>formatFactorValue</code>, <code>STATUS_TO_PALETTE</code>, and <code>HOUR_GRID</code>.</li>
+  </ul>
+  <b>Prototype</b> — light tokens mirror <code>src/theme/theme.ts</code>; mock day uses the same deterministic generator as the
+  other prototypes.`;
+
+/* ---------- boot ---------- */
+renderDetail();
+</script>
+</body>
+</html>
