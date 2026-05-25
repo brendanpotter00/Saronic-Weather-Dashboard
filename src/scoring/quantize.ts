@@ -26,10 +26,12 @@ export const FACTOR_DECIMALS: Record<Factor, number> = {
   [Factor.Visibility]: 1,
 };
 
-// Round to `decimals` places in one direction, stripping binary-float noise first: e.g.
-// `1.97 * 10` is `19.700000000000003`, and a naive `Math.ceil` of that would jump to 2.0 (here
-// correct) but `0.29 * 100` is `28.999999999999996`, where a naive `Math.floor` would snap to
-// 0.28. `toFixed(6)` collapses that 1e-15 noise before the directional round decides the digit.
+// Round to `decimals` places in one direction, stripping binary-float noise first. Multiplying
+// by the scale can leave a value a hair off the integer it should land on — classically
+// `0.29 * 100` is `28.999999999999996`, where a naive `Math.floor` would snap to 0.28 instead of
+// the intended 0.29. `toFixed(6)` collapses that ~1e-15 noise before the directional round picks
+// the digit, keeping the helper correct at any precision. (The 1-decimal factors here don't trip
+// it in practice; it's 2-decimal precision like the precip example that bites — hence the guard.)
 function roundToDecimals(value: number, decimals: number, direction: 'up' | 'down'): number {
   const scale = 10 ** decimals;
   const scaled = Number((value * scale).toFixed(6));
@@ -37,10 +39,14 @@ function roundToDecimals(value: number, decimals: number, direction: 'up' | 'dow
   return rounded / scale;
 }
 
-// The one number Tara sees and the tier is computed from. `null` (a missing reading) passes
-// through untouched — it stays the fail-safe no-go it was upstream (see normalize.ts).
+// The one number Tara sees and the tier is computed from. A missing (`null`) OR non-finite
+// (`NaN`/`Infinity`) reading collapses to `null` so it stays the fail-safe no-go it was upstream
+// (see normalize.ts). Guarding non-finite here — not just relying on the caller — matters because
+// a `NaN` slipping into the tier comparisons scores a spurious GO (`NaN > limit` is `false`), i.e.
+// the tool reading SAFER than reality. The data layer already maps non-finite to null; this keeps
+// the invariant true at the function itself, the one caller scoreHour depends on.
 export function quantizeReading(factor: Factor, value: number | null): number | null {
-  if (value === null) return null;
+  if (value === null || !Number.isFinite(value)) return null;
   switch (factor) {
     case Factor.Wind:
     case Factor.Wave:
