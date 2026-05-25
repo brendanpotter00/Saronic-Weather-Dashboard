@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where do the weather icons go? — placement options</title>
+<style>
+  /* ----- Tokens mirror src/theme/theme.ts (light, near-monochrome + status) ----- */
+  :root{
+    --canvas:#fafafa; --paper:#ffffff; --line:#e0e0e0;
+    --ink:#0a0a0a; --ink-2:#5c5c5c;
+    --go:#2e7d32; --cau:#ed6c02; --no:#c62828;
+    --go-bg:#e7f0e8; --cau-bg:#fbeede; --no-bg:#f7e3e3;
+    /* weather-icon palette — a SECOND colour language, kept off the status hues on purpose */
+    --sun:#f6a609; --cloud:#8a94a6; --cloud-dk:#5f6b7e; --fog:#aab2bd; --rain:#3d83c9; --storm:#5b51c9;
+    --unit:8px; --radius:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--canvas);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:64px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+
+  /* ----- Typography helpers (match MUI variant= roles) ----- */
+  .overline{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .h1{font-size:1.9rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .caption{font-size:.75rem;color:var(--ink-2)}
+  .muted{color:var(--ink-2)}
+
+  header.top{padding:28px 0 6px}
+  header.top .h1{margin-top:6px}
+  header.top .sub{color:var(--ink-2);font-size:.9rem;margin-top:8px;max-width:66ch}
+
+  .seclabel{margin:30px 0 12px;display:flex;align-items:center;gap:12px}
+  .seclabel::after{content:"";flex:1;height:1px;background:var(--line)}
+  .seclabel .overline{margin:0}
+
+  .modenote{font-size:.84rem;color:var(--ink-2);line-height:1.65;max-width:70ch}
+  .modenote b{color:var(--ink)}
+
+  svg.wx{display:block}
+
+  /* ----- option card (one placement variant) ----- */
+  .optcard{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+  .opthead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .optname{font-weight:800;font-size:.98rem}
+  .optname .tag{font-size:.62rem;font-weight:700;letter-spacing:.12em;color:var(--ink-2);
+    border:1px solid var(--line);border-radius:5px;padding:2px 6px;margin-right:8px;vertical-align:1px}
+  .optcap{font-size:.78rem;color:var(--ink-2);max-width:62ch}
+  .rec{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--go);border:1px solid var(--go);border-radius:5px;padding:1px 6px;margin-left:2px}
+
+  /* ===== 10-DAY STRIP (mirrors HorizonStrip + DayColumn + HourLine) ===== */
+  .strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px}
+  .daycol{flex:0 0 64px;border-radius:8px;padding:8px 6px;border:1px solid var(--line);background:#fff}
+  .daycol .dow{font-size:.62rem;font-weight:700;letter-spacing:.06em;color:var(--ink-2);text-align:center}
+  .daycol .dnum{font-weight:800;font-size:1.05rem;line-height:1;text-align:center}
+  .daycol .dnumrow{display:flex;align-items:center;justify-content:center;gap:5px}
+  .daycol .dayicon{display:flex;justify-content:center;margin:5px 0 2px}
+  .hourline{display:flex;gap:1px;height:16px;border-radius:4px;overflow:hidden;background:var(--canvas);margin-top:7px}
+  .hourline span{flex:1;min-width:0}
+  .daycol .barrow{display:flex;align-items:center;gap:6px;margin-top:7px}
+  .daycol .barrow .hourline{flex:1;margin-top:0}
+
+  /* ===== HOURLY TABLE (mirrors DayDetail header + HourRow, HOUR_GRID) ===== */
+  .htable{padding:2px 2px 4px}
+  .hrow{display:grid;column-gap:14px;align-items:center;padding:7px 8px;border-top:1px solid var(--line);
+    border-radius:6px;font-size:.82rem}
+  .hrow.hhead{border-top:none;color:var(--ink-2);padding-bottom:6px}
+  .hrow.hhead span{font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .bar{width:6px;height:20px;border-radius:3px}
+  .time{color:var(--ink-2);font-weight:600}
+  .hv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .colr{text-align:right}
+  .ch{text-align:center}
+  .skycell{display:flex;justify-content:center}
+  .timewx{display:flex;align-items:center;gap:7px}
+  .barwx{display:flex;align-items:center;gap:7px}
+
+  /* per-variant grid templates (the placement difference) */
+  .ht-H1 .hrow{grid-template-columns:6px 56px 30px repeat(4,1fr)}
+  .ht-H2 .hrow{grid-template-columns:6px 78px repeat(4,1fr)}
+  .ht-H3 .hrow{grid-template-columns:36px 56px repeat(4,1fr)}
+
+  /* ----- legend ----- */
+  .legend{display:flex;flex-wrap:wrap;gap:14px 24px;background:var(--paper);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px 18px}
+  .legitem{display:flex;align-items:center;gap:8px;font-size:.82rem}
+  .legitem .nm{font-weight:600}
+  .legitem .cd{color:var(--ink-2);font-size:.72rem}
+
+  /* status helpers */
+  .s-go{color:var(--go)} .s-cau{color:var(--cau)} .s-no{color:var(--no)}
+  .bg-go{background:var(--go)} .bg-cau{background:var(--cau)} .bg-no{background:var(--no)}
+
+  .footnote{margin-top:32px;font-size:.78rem;color:var(--ink-2);line-height:1.75;border-top:1px solid var(--line);padding-top:16px}
+  .footnote b{color:var(--ink);font-weight:600}
+  .footnote code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74rem;background:#f1f1f1;padding:1px 5px;border-radius:4px}
+  .footnote ul{margin:8px 0 0 18px}
+  .footnote li{margin:4px 0}
+
+  @media(max-width:560px){
+    .hrow{column-gap:9px;font-size:.78rem}
+    .ht-H1 .hrow{grid-template-columns:6px 44px 26px repeat(4,1fr)}
+    .ht-H2 .hrow{grid-template-columns:6px 64px repeat(4,1fr)}
+    .ht-H3 .hrow{grid-template-columns:32px 44px repeat(4,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="overline">Gulf Test Range · Gulfport, MS · prototype</div>
+    <div class="h1">Where do the weather icons go?</div>
+    <div class="sub">Typical weather apps show a little <b>sun / cloud / rain</b> glyph per day and per hour.
+      This explores <b>where to place that icon</b> on our two surfaces — the 10-day strip and the hourly
+      detail — with three options each. The icon is purely <b>informational</b> (it never changes go/no-go;
+      status still comes only from wind, wave, rain, and visibility), so it's a second colour layer sitting
+      next to the green/amber/red status. Night hours are already dropped, so these are all daytime icons.</div>
+  </header>
+
+  <div class="seclabel"><span class="overline">How to read this</span></div>
+  <div class="modenote">The <b>coloured bar/segments are status</b> (green = go, amber = caution, red = no-go).
+    The <b>weather glyph is the sky condition</b> (sun, cloud, rain…). The same mock 10-day forecast and the
+    same example day drive every option below, so you're comparing <i>placement</i>, not data. Pick the layout
+    that reads fastest to you.</div>
+
+  <!-- ===================== DAY STRIP OPTIONS ===================== -->
+  <div class="seclabel"><span class="overline">A · 10-day strip — one icon per day</span></div>
+  <div class="caption" style="margin-bottom:12px">Each day's icon shows its <b>most notable condition</b> (a day that
+    rains in the afternoon shows the rain icon, even if the morning is clear) — same "worst wins" idea we use for status.</div>
+  <div id="dayOptions"></div>
+
+  <!-- ===================== HOURLY TABLE OPTIONS ===================== -->
+  <div class="seclabel"><span class="overline">B · Hourly detail — one icon per hour</span></div>
+  <div class="caption" style="margin-bottom:12px">Same example day in all three: clear morning → cloud builds → rain →
+    a stormy close, so the icon changes row to row.</div>
+  <div id="hourOptions"></div>
+
+  <!-- ===================== LEGEND ===================== -->
+  <div class="seclabel"><span class="overline">Icon legend</span></div>
+  <div class="legend" id="legend"></div>
+
+  <div class="footnote" id="footnote"></div>
+</div>
+
+<script>
+/* ---------- thresholds (mirror src/scoring/weatherThresholds.ts) ---------- */
+function windTier(kn){return kn>20?2:kn>=15?1:0;}        // <15 go · 15–20 caution · >20 no-go
+function waveTier(ft){return ft>4?2:ft>=2?1:0;}          // <2 · 2–4 · >4
+function precipTier(v){return v>0.05?2:0;}               // any rain = no-go
+function visTier(mi){return mi<3?2:mi<10?1:0;}           // ≥10 · 3–10 · <3
+function hourTier(x){return Math.max(windTier(x.wind),waveTier(x.wave),precipTier(x.precip),visTier(x.vis));}
+const STATUS=[{w:'GO',c:'go'},{w:'CAUTION',c:'cau'},{w:'NO-GO',c:'no'}];
+
+/* day badge = best available 6-hour window (worst hour in a window, minimised over windows) */
+const DEMO_LEN=6;
+function bestWindowTier(hours){
+  if(hours.length<DEMO_LEN) return Math.max(...hours.map(hourTier));
+  let best=2;
+  for(let i=0;i+DEMO_LEN<=hours.length;i++){
+    let w=0; for(let j=i;j<i+DEMO_LEN;j++) w=Math.max(w,hourTier(hours[j]));
+    best=Math.min(best,w);
+  }
+  return best;
+}
+
+/* ---------- weather-icon registry (maps WMO weather_code → icon) ----------
+   severity orders the "most notable" pick: storm > rain > fog > overcast > partly > clear */
+const CLOUD='M7.4 18.4a4.2 4.2 0 0 1-.5-8.36 5.6 5.6 0 0 1 10.8-1.22A3.9 3.9 0 0 1 17.7 18.4H7.4z';
+function sunSVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <g stroke="var(--sun)" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5" y1="5" x2="6.8" y2="6.8"/><line x1="17.2" y1="17.2" x2="19" y2="19"/><line x1="5" y1="19" x2="6.8" y2="17.2"/><line x1="17.2" y1="6.8" x2="19" y2="5"/></g>
+  <circle cx="12" cy="12" r="4.3" fill="var(--sun)"/></svg>`;}
+function partlySVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <g stroke="var(--sun)" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="3.7"/><line x1="2.3" y1="8" x2="4" y2="8"/><line x1="3.7" y1="3.7" x2="4.9" y2="4.9"/><line x1="12.3" y1="3.7" x2="11.1" y2="4.9"/></g>
+  <circle cx="8" cy="8" r="3" fill="var(--sun)"/>
+  <path d="${CLOUD}" fill="#9aa3b2"/></svg>`;}
+function overcastSVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <path d="${CLOUD}" fill="var(--cloud)"/></svg>`;}
+function fogSVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <path d="M6.4 13.2a4 4 0 0 1-.4-7.95 5.4 5.4 0 0 1 10.4-1.18A3.7 3.7 0 0 1 16.5 13.2H6.4z" fill="var(--fog)"/>
+  <g stroke="var(--cloud)" stroke-width="1.7" stroke-linecap="round"><line x1="4.5" y1="16.8" x2="16.5" y2="16.8"/><line x1="6.5" y1="20" x2="18.5" y2="20"/></g></svg>`;}
+function rainSVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <path d="M7 14.2a4 4 0 0 1-.45-7.95 5.5 5.5 0 0 1 10.6-1.2A3.8 3.8 0 0 1 17.1 14.2H7z" fill="var(--cloud-dk)"/>
+  <g stroke="var(--rain)" stroke-width="1.9" stroke-linecap="round"><line x1="8" y1="16.5" x2="6.8" y2="20"/><line x1="12" y1="16.5" x2="10.8" y2="20"/><line x1="16" y1="16.5" x2="14.8" y2="20"/></g></svg>`;}
+function stormSVG(s){return `<svg class="wx" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+  <path d="M7 13.6a4 4 0 0 1-.45-7.95 5.5 5.5 0 0 1 10.6-1.2A3.8 3.8 0 0 1 17.1 13.6H7z" fill="var(--cloud-dk)"/>
+  <path d="M12.7 13l-3.4 4.7h2.4l-1.1 4.1 4.4-5.4h-2.5l1.3-3.4z" fill="var(--sun)"/></svg>`;}
+
+const ICONS={
+  clear:   {label:'Clear',         color:'var(--sun)',     sev:0, codes:'0–1',   svg:sunSVG},
+  partly:  {label:'Partly cloudy', color:'var(--sun)',     sev:1, codes:'2',     svg:partlySVG},
+  overcast:{label:'Overcast',      color:'var(--cloud)',   sev:2, codes:'3',     svg:overcastSVG},
+  fog:     {label:'Fog',           color:'var(--fog)',     sev:3, codes:'45,48', svg:fogSVG},
+  rain:    {label:'Rain',          color:'var(--rain)',    sev:4, codes:'51–86', svg:rainSVG},
+  storm:   {label:'Thunderstorm',  color:'var(--storm)',   sev:5, codes:'95–99', svg:stormSVG},
+};
+function iconForCode(c){
+  if(c>=95) return ICONS.storm;
+  if((c>=51&&c<=67)||(c>=71&&c<=77)||(c>=80&&c<=86)) return ICONS.rain;
+  if(c===45||c===48) return ICONS.fog;
+  if(c===3) return ICONS.overcast;
+  if(c===2) return ICONS.partly;
+  return ICONS.clear; // 0,1
+}
+/* the day icon: the most notable (highest-severity) condition across the day's daylight hours */
+function mostNotable(hours){return hours.map(x=>iconForCode(x.code)).reduce((a,b)=>b.sev>a.sev?b:a);}
+
+/* ---------- deterministic mock data ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const FIRST_HOUR=6,LAST_HOUR=19;
+
+// per-day profile keyed by the day's peak (notable) WMO code — worse weather → worse factors
+const PROF={
+  0: {wb:8, wa:5,  vb:14,  wvb:1.1,wva:.3, rain:false},
+  2: {wb:10,wa:7,  vb:13,  wvb:1.3,wva:.4, rain:false},
+  3: {wb:12,wa:8,  vb:11,  wvb:1.5,wva:.6, rain:false},
+  45:{wb:7, wa:4,  vb:2.4, wvb:1.1,wva:.3, rain:false}, // fog → low visibility
+  61:{wb:14,wa:9,  vb:8,   wvb:1.9,wva:1.1,rain:true},
+  95:{wb:18,wa:11, vb:5,   wvb:2.6,wva:1.8,rain:true},
+};
+function hourCode(h,peak){
+  if(peak===0) return (h%5===0)?1:0;            // clear / mainly clear all day
+  const t=(h-FIRST_HOUR)/(LAST_HOUR-FIRST_HOUR);
+  if(t<0.4)  return 0;                           // clear morning
+  if(t<0.62) return peak>=3?2:peak;              // a little cloud midday
+  return peak;                                   // afternoon settles to the day's peak
+}
+function genDay(seed,peak){
+  const rng=mulberry32(seed),p=PROF[peak],hours=[];
+  for(let h=FIRST_HOUR;h<=LAST_HOUR;h++){
+    const ramp=Math.max(0,(h-11)/8);
+    hours.push({
+      h,
+      wind:Math.max(3, p.wb + p.wa*ramp + (rng()*2-1)*1.2),
+      wave:Math.max(.4, p.wvb + p.wva*ramp + (rng()*2-1)*.2),
+      precip:(p.rain && h>=13)?Math.max(0.08, .25*(.4+rng())):0,
+      vis:Math.max(.8, Math.min(16, p.vb + (rng()*1.2-.6))),
+      code:hourCode(h,peak),
+    });
+  }
+  return hours;
+}
+
+const DOW3=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const PEAKS=[0,2,3,0,61,95,45,2,0,61]; // a varied 10-day run so every day icon differs
+const base=new Date();
+const DAYS=PEAKS.map((peak,i)=>{
+  const d=new Date(base); d.setDate(base.getDate()+i);
+  return {dow:i===0?'TODAY':DOW3[d.getDay()], dnum:d.getDate(), hours:genDay(1000+i*7,peak)};
+});
+
+/* example day for the hourly table: hand-set codes so all icons appear in one table */
+const DETAIL=(()=>{
+  const codeOf=h=> h<=8?0 : h<=10?2 : h<=13?3 : h<=16?61 : 95; // clear→partly→overcast→rain→storm
+  const rng=mulberry32(7);
+  const hours=[];
+  for(let h=FIRST_HOUR;h<=LAST_HOUR;h++){
+    const t=(h-FIRST_HOUR)/(LAST_HOUR-FIRST_HOUR), code=codeOf(h);
+    let vis=15-9*t+(rng()*1-.5); if(code>=95) vis-=2;
+    hours.push({
+      h,
+      wind:Math.max(4, 6+20*t+(rng()*2-1)*1.1),
+      wave:Math.max(.5, 1.0+3.6*t),
+      precip:h>=14?Math.max(0.08,0.05*(h-12)):0,
+      vis:Math.max(1, Math.min(16, vis)),
+      code,
+    });
+  }
+  return hours;
+})();
+
+/* ---------- formatting ---------- */
+function fmtH(h){const ap=h<12?'AM':'PM';let hh=h%12;if(hh===0)hh=12;return hh+' '+ap;}
+function hourline(hours){return `<div class="hourline">`+hours.map(x=>`<span class="bg-${STATUS[hourTier(x)].c}"></span>`).join('')+`</div>`;}
+
+/* ---------- DAY STRIP: one column rendered three ways ---------- */
+function dayCol(day,variant){
+  const badge=STATUS[bestWindowTier(day.hours)].c;
+  const ico=mostNotable(day.hours);
+  const dnum=`<div class="dnum s-${badge}">${day.dnum}</div>`;
+  let core;
+  if(variant==='D1'){
+    core=`${dnum}<div class="dayicon">${ico.svg(22)}</div>${hourline(day.hours)}`;
+  }else if(variant==='D2'){
+    core=`<div class="dnumrow"><span class="dnum s-${badge}">${day.dnum}</span>${ico.svg(17)}</div>${hourline(day.hours)}`;
+  }else{ // D3 — icon rides the front of the status line
+    core=`${dnum}<div class="barrow">${ico.svg(17)}${hourline(day.hours)}</div>`;
+  }
+  return `<div class="daycol"><div class="dow">${day.dow}</div>${core}</div>`;
+}
+function strip(variant){return `<div class="strip">`+DAYS.map(d=>dayCol(d,variant)).join('')+`</div>`;}
+
+/* ---------- HOURLY TABLE: one day rendered three ways ---------- */
+function hourCells(x){
+  const tint=(val,t)=>`<span class="hv ${STATUS[t].c==='go'?'':'s-'+STATUS[t].c}">${val}</span>`;
+  return tint(x.wind.toFixed(0),windTier(x.wind))
+       + tint(x.wave.toFixed(1),waveTier(x.wave))
+       + tint(x.precip<0.06?'—':x.precip.toFixed(2),precipTier(x.precip))
+       + tint(x.vis>=15.5?'15+':x.vis.toFixed(0),visTier(x.vis));
+}
+function hourRow(x,variant){
+  const bar=`<span class="bar bg-${STATUS[hourTier(x)].c}"></span>`;
+  const ico=iconForCode(x.code).svg(18);
+  const time=`<span class="time">${fmtH(x.h)}</span>`;
+  let lead;
+  if(variant==='H1')      lead=`${bar}${time}<span class="skycell">${ico}</span>`;
+  else if(variant==='H2') lead=`${bar}<span class="time timewx">${ico}${fmtH(x.h)}</span>`;
+  else                    lead=`<span class="barwx">${bar}${ico}</span>${time}`;
+  return `<div class="hrow">${lead}${hourCells(x)}</div>`;
+}
+function tableHead(variant){
+  const f=`<span class="colr">Wind kn</span><span class="colr">Wave ft</span><span class="colr">Rain in</span><span class="colr">Vis mi</span>`;
+  if(variant==='H1') return `<span></span><span>Time</span><span class="ch">Sky</span>${f}`;
+  if(variant==='H2') return `<span></span><span>Time</span>${f}`;
+  return `<span></span><span>Time</span>${f}`; // H3: icon shares the status-bar column
+}
+function table(variant){
+  return `<div class="htable ht-${variant}"><div class="hrow hhead">${tableHead(variant)}</div>`
+    + DETAIL.map(x=>hourRow(x,variant)).join('') + `</div>`;
+}
+
+/* ---------- option card wrapper ---------- */
+function optCard(tag,name,cap,recommended,inner){
+  return `<div class="optcard">
+    <div class="opthead">
+      <div class="optname"><span class="tag">${tag}</span>${name}${recommended?'<span class="rec">suggested</span>':''}</div>
+      <div class="optcap">${cap}</div>
+    </div>${inner}</div>`;
+}
+
+/* ---------- render ---------- */
+document.getElementById('dayOptions').innerHTML=
+  optCard('D1','Dedicated icon row',
+    'Icon on its own line between the date and the status line. Most prominent and the most "weather-app" feel; costs a little column height.',
+    true, strip('D1'))
++ optCard('D2','Inline with the date',
+    'A smaller icon sits beside the date number. Compact — no extra height — but the glyph is small at a glance.',
+    false, strip('D2'))
++ optCard('D3','On the status line',
+    'Icon rides the front of the day\'s colour bar, tying "sky" and "status" together. Tightest fit; the icon competes with the bar for the eye.',
+    false, strip('D3'));
+
+document.getElementById('hourOptions').innerHTML=
+  optCard('H1','Dedicated "Sky" column',
+    'A new column between Time and the readings. Cleanest top-to-bottom scan of conditions; widens the row slightly.',
+    true, table('H1'))
++ optCard('H2','Beside the time',
+    'Icon pairs with the clock label — "when + what" together, no new column. The time cell gets a touch wider.',
+    false, table('H2'))
++ optCard('H3','With the status bar',
+    'Glyph shares the left edge with the 6px status bar. Most compact and couples sky to status, but the two colour cues sit on top of each other.',
+    false, table('H3'));
+
+document.getElementById('legend').innerHTML=Object.values(ICONS)
+  .sort((a,b)=>a.sev-b.sev)
+  .map(i=>`<div class="legitem">${i.svg(24)}<span><span class="nm">${i.label}</span> <span class="cd">· WMO ${i.codes}</span></span></div>`).join('');
+
+document.getElementById('footnote').innerHTML=`
+  <b>Suggested:</b> <b>A · Dedicated icon row (D1)</b> for the strip and <b>B · Dedicated "Sky" column (H1)</b> for the
+  hourly table — both keep the weather glyph on its own real estate so it never fights the status colour for the eye.
+  All six are live above; the call is yours.
+  <ul>
+    <li><b>Icon ≠ status.</b> The glyph reports the sky (sun/cloud/rain); the coloured bar reports go/no-go. They're
+      independent on purpose — e.g. a fog day shows a clear-ish morning icon but a red bar (visibility kills it).</li>
+    <li><b>Day icon = most notable condition</b> (storm &gt; rain &gt; fog &gt; overcast &gt; partly &gt; clear), so an
+      afternoon shower flags the whole day. Tweak that ordering in <code>ICONS[].sev</code> if you'd rather it show
+      midday or the most-common condition instead.</li>
+    <li><b>Colour tension to watch:</b> these icons add amber / slate / blue next to the reserved green-amber-red status.
+      Option D3/H3 put the two colour languages closest together — worth a hard look on the strip where space is tight.</li>
+    <li><b>React port:</b> the data already requests <code>weather_code</code> but drops it. Add
+      <code>weatherCode: number | null</code> to <code>CombinedHour</code> (<code>src/model.ts</code>), keep
+      <code>'weather_code'</code> in <code>FORECAST_HOURLY</code> (<code>src/forecast/openMeteoConstants.ts</code>),
+      and carry it through <code>combineForecasts.ts</code>. Add a <code>weatherIcon.ts</code> map in the dashboard layer
+      (mirrors this registry) and render in <code>DayColumn.tsx</code> / <code>HourRow.tsx</code>. It stays purely
+      presentational — <b>never</b> a go/no-go input.</li>
+  </ul>
+  <b>Prototype</b> — light tokens mirror <code>src/theme/theme.ts</code>; the mock forecast uses the same deterministic
+  generator as the other prototypes. Status logic mirrors <code>src/scoring/</code>.`;
+</script>
+</body>
+</html>

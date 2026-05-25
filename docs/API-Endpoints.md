@@ -193,11 +193,11 @@ The values returned in the units above map to Tara's go / iffy / no-go bands
 | Wind | `wind_speed_10m` (kn) | < 15 | 15–20 | > 20 |
 | Wave | `wave_height` (ft) | < 2 | 2–4 | > 4 |
 | Precipitation | `precipitation` (mm) | 0 (none) | — | any rain |
-| Visibility | `visibility` (m) | ≥ 10 mi (~16,093 m) | 3–10 mi (~4,828–16,093 m) | < 3 mi (< ~4,828 m) |
+| Visibility | `visibility` (m) | ≥ 6 mi (~9,656 m) | 3–6 mi (~4,828–9,656 m) | < 3 mi (< ~4,828 m) |
 
-> Tara gave visibility in **miles** ("10 miles is ideal, less than 3 is a no-go")
+> Tara gave visibility in **miles** ("6 mi is go, 3–6 caution, less than 3 a no-go")
 > but the API returns **meters**. Convert with 1 mi = 1609.344 m. Open-Meteo caps
-> visibility around ~24,140 m, so 10 mi (16,093 m) sits comfortably in range.
+> visibility around ~24,140 m, so the 6 mi go floor (9,656 m) sits comfortably in range.
 
 ---
 
@@ -234,8 +234,8 @@ The values returned in the units above map to Tara's go / iffy / no-go bands
   divides a feet value by 1609.344, reporting ~3× the true distance.
 - **Always send `timezone`.** Omitting it returns UTC times, which will misalign the
   daylight window and the day grouping.
-- **Visibility comes back in meters, Tara thinks in miles.** Her bands are ≥ 10 mi
-  ideal / < 3 mi no-go. Convert API meters with 1 mi = 1609.344 m before comparing.
+- **Visibility comes back in meters, Tara thinks in miles.** Her bands are ≥ 6 mi
+  go / 3–6 mi caution / < 3 mi no-go. Convert API meters with 1 mi = 1609.344 m before comparing.
 - **Rate limits / caching.** Open-Meteo's free tier is rate-limited and intended for
   non-commercial use. `Notes.md` calls for caching responses ~10 minutes so repeated
   morning checks don't re-hit the API.

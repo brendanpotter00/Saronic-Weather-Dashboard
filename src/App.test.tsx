@@ -233,3 +233,65 @@ describe('pin a demo window', () => {
     expect(within(card).getByText('NO-GO')).toBeInTheDocument();
   });
 });
+
+// Multiple windows can be pinned at once: each confirm appends a card (in pin order), re-pinning
+// an identical window is a no-op, and unpinning one leaves the rest. Cards are addressed by their
+// per-day aria-label ("Pinned demo window: <weekday>, ...").
+describe('pinning multiple windows', () => {
+  beforeEach(() => {
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+  });
+
+  function pinnedCards() {
+    return screen.queryAllByRole('region', { name: /pinned demo window/i });
+  }
+
+  function pinAround(label: RegExp) {
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    fireEvent.click(screen.getByRole('button', { name: /^pin window$/i }));
+  }
+
+  // Switch the day-detail to a different day so its hours can be pinned too.
+  function openDay(date: string) {
+    const { dow, dayNum } = formatDayLabel(date);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${dow} ${dayNum} —`) }));
+  }
+
+  it('pins windows on different days as separate stacked cards', () => {
+    renderApp();
+    pinAround(/pin a demo window around 10 AM/i); // day 0 (default)
+    openDay(DATES[1]);
+    pinAround(/pin a demo window around 10 AM/i); // day 1
+
+    expect(pinnedCards()).toHaveLength(2);
+    const day0 = formatDayLabel(DATES[0]);
+    const day1 = formatDayLabel(DATES[1]);
+    expect(screen.getByRole('region', { name: new RegExp(`${day0.weekday},`) })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: new RegExp(`${day1.weekday},`) })).toBeInTheDocument();
+  });
+
+  it('re-pinning the identical window adds no duplicate card', () => {
+    renderApp();
+    pinAround(/pin a demo window around 10 AM/i);
+    expect(pinnedCards()).toHaveLength(1);
+    pinAround(/pin a demo window around 10 AM/i); // same day, same centered block → identical pin
+    expect(pinnedCards()).toHaveLength(1);
+  });
+
+  it('unpinning one card leaves the others', () => {
+    renderApp();
+    pinAround(/pin a demo window around 10 AM/i);
+    openDay(DATES[1]);
+    pinAround(/pin a demo window around 10 AM/i);
+    expect(pinnedCards()).toHaveLength(2);
+
+    const day0 = formatDayLabel(DATES[0]);
+    const day1 = formatDayLabel(DATES[1]);
+    const firstCard = screen.getByRole('region', { name: new RegExp(`${day0.weekday},`) });
+    fireEvent.click(within(firstCard).getByRole('button', { name: /^unpin$/i }));
+
+    expect(pinnedCards()).toHaveLength(1);
+    expect(screen.getByRole('region', { name: new RegExp(`${day1.weekday},`) })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: new RegExp(`${day0.weekday},`) })).not.toBeInTheDocument();
+  });
+});

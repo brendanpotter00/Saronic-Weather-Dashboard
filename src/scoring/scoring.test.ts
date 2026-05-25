@@ -66,9 +66,9 @@ describe('scoreHour — factor boundaries (pins the derived caution thresholds)'
     expect(scoreHour(mkHour(7, { waveHeightFt: 4.1 })).wave.status).toBe(Status.NoGo);
   });
 
-  it('visibility (inverted): >= 10 GO, 3–10 CAUTION, < 3 NO-GO', () => {
-    expect(scoreHour(mkHour(7, { visibilityMiles: 10 })).visibility.status).toBe(Status.Go); // exactly the derived 3/0.3
-    expect(scoreHour(mkHour(7, { visibilityMiles: 9.9 })).visibility.status).toBe(Status.Caution);
+  it('visibility (inverted): >= 6 GO, 3–6 CAUTION, < 3 NO-GO', () => {
+    expect(scoreHour(mkHour(7, { visibilityMiles: 6 })).visibility.status).toBe(Status.Go); // exactly the derived 3/0.5
+    expect(scoreHour(mkHour(7, { visibilityMiles: 5.9 })).visibility.status).toBe(Status.Caution);
     expect(scoreHour(mkHour(7, { visibilityMiles: 3 })).visibility.status).toBe(Status.Caution);
     expect(scoreHour(mkHour(7, { visibilityMiles: 2.9 })).visibility.status).toBe(Status.NoGo);
   });
@@ -84,10 +84,10 @@ describe('scoreHour — factor boundaries (pins the derived caution thresholds)'
 // The value scoring stores is the SAME number that drives the tier, quantized to display
 // resolution (see quantize.ts). These pin the two behaviours that fixed the reported bug.
 describe('scoreHour — colour and label come from one quantized number', () => {
-  it('the reported bug: a 9.88 mi visibility shows "9.8 mi" AND scores Caution (never a green "10 mi")', () => {
-    const scored = scoreHour(mkHour(11, { visibilityMiles: 15900 / 1609.344 })); // live May-24 11:00 reading
+  it('a just-under-6-mi visibility shows "5.9 mi" AND scores Caution (never a green "6 mi")', () => {
+    const scored = scoreHour(mkHour(11, { visibilityMiles: 9600 / 1609.344 })); // ~5.97 mi, just below the 6 mi go floor
     expect(scored.visibility.status).toBe(Status.Caution);
-    expect(formatFactorValue(Factor.Visibility, scored.visibility.value)).toBe('9.8 mi');
+    expect(formatFactorValue(Factor.Visibility, scored.visibility.value)).toBe('5.9 mi');
   });
 
   it('conservative shift: a 14.96 kn wind rounds UP to "15.0 kn" and scores Caution, not a green "15 kn"', () => {

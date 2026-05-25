@@ -13,7 +13,9 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 import Alert from '@mui/material/Alert';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Status } from '../../scoring/status';
 import type { ScoredDay } from '../../scoring/scoring';
 import { centeredWindowStart, scoreNamedWindow } from '../../scoring/window';
@@ -48,6 +50,12 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
     : null;
   const windowFits = bounds !== null && bounds.endHour - bounds.startHour + 1 >= demoWindowHours;
 
+  // The how-to hint when a window fits, or why one doesn't — surfaced from the daylight-hours info
+  // icon so the header stays uncluttered.
+  const pinHint = windowFits
+    ? `Point at the middle of your demo — the ${demoWindowHours}-hour block centers there; click to pin.`
+    : `Daylight is shorter than the ${demoWindowHours}-hour demo length, so no window fits.`;
+
   // Preview status drives the tint; recomputed only when the hovered start moves. scoreNamedWindow
   // reads the already-scored hours, so this is cheap.
   const preview = hoverStart !== null ? scoreNamedWindow(day, hoverStart, demoWindowHours) : null;
@@ -80,15 +88,17 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
             )}
 
             <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1, mb: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                 <Typography variant="overline" color="text.secondary" component="div">
                   Daylight hours
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {windowFits
-                    ? `Point at the middle of your demo — the ${demoWindowHours}-hour block centers there; click to pin.`
-                    : `Daylight is shorter than the ${demoWindowHours}-hour demo length, so no window fits.`}
-                </Typography>
+                <Tooltip title={pinHint}>
+                  <InfoOutlinedIcon
+                    aria-label={pinHint}
+                    tabIndex={0}
+                    sx={{ fontSize: '1rem', color: 'text.secondary', cursor: 'help' }}
+                  />
+                </Tooltip>
               </Box>
               {/* Column header, aligned to the hour rows via the shared grid template. */}
               <Box

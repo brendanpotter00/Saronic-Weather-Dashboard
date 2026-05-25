@@ -34,7 +34,7 @@ export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWi
   const statusColor = `${STATUS_TO_PALETTE[score.status]}.main`;
 
   return (
-    <Box component="section" aria-label="Pinned demo window">
+    <Box component="section" aria-label={`Pinned demo window: ${weekday}, ${month} ${dayNum}`}>
       <Card>
         <Box sx={{ height: 5, bgcolor: statusColor }} />
         <CardContent>
