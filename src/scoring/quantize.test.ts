@@ -27,9 +27,22 @@ describe('quantizeReading — one number for both the colour and the label', () 
     }
   });
 
-  it('strips binary-float noise so the directional round picks the right digit', () => {
-    // 0.7 * 10 === 7.000000000000001 in JS; a naive Math.ceil of that would jump the answer to 0.8.
+  it('returns a value already at display resolution unchanged (float-noise safe)', () => {
+    // roundToDecimals strips sub-1e-15 multiplication noise (toFixed(6)) before the directional
+    // round, so a value already at 1-decimal resolution round-trips exactly rather than drifting
+    // up (ceil) or down (floor). (0.7 * 10 is exactly 7 in JS — clean values are the common case;
+    // the strip's real worst case is finer 2-decimal precision, documented in quantize.ts.)
     expect(quantizeReading(Factor.Wave, 0.7)).toBe(0.7);
+    expect(quantizeReading(Factor.Visibility, 9.9)).toBe(9.9);
+  });
+
+  it('collapses a non-finite reading to the fail-safe null no-go (never a spurious go)', () => {
+    // A NaN/Infinity must not reach the tier comparisons, where `NaN > limit` is false and would
+    // score a bogus GO — the tool reading safer than reality. quantizeReading floors it to null.
+    for (const factor of Object.values(Factor)) {
+      expect(quantizeReading(factor, Number.NaN)).toBeNull();
+      expect(quantizeReading(factor, Number.POSITIVE_INFINITY)).toBeNull();
+    }
   });
 
   it('FACTOR_DECIMALS is the shared precision source for rounding and display', () => {

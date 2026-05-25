@@ -6,7 +6,7 @@
 // it shapes the go/no-go scan; the UI only reads the echoed window and the per-hour flag.
 
 import type { DayForecast } from '../model';
-import { Factor, Status } from './status';
+import { Factor, FACTOR_ORDER, Status } from './status';
 import { type Tier, STATUS_TO_TIER, TIER_TO_STATUS, TIER_NOGO, worstTier } from './tiers';
 import type { ScoredDay, ScoredFactor, ScoredHour } from './scoring';
 
@@ -124,8 +124,6 @@ export interface NamedWindowScore {
   complete: boolean; // false → missing hours/readings, so `status` is a fail-safe no-go
 }
 
-const FACTORS: Factor[] = [Factor.Wind, Factor.Wave, Factor.Precipitation, Factor.Visibility];
-
 const FACTOR_ACCESSOR: Record<Factor, (hour: ScoredHour) => ScoredFactor> = {
   [Factor.Wind]: (hour) => hour.wind,
   [Factor.Wave]: (hour) => hour.wave,
@@ -165,7 +163,7 @@ export function scoreNamedWindow(day: ScoredDay, startHour: number, lengthHours:
   // Worst-in-window reading per factor: reduce the block in the factor's bad direction. An empty
   // block (the start fell off the forecast) degrades to a missing no-go reading.
   const factors = Object.fromEntries(
-    FACTORS.map((factor) => {
+    FACTOR_ORDER.map((factor) => {
       const readings = block.map(FACTOR_ACCESSOR[factor]);
       const worst =
         readings.length === 0

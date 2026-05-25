@@ -1,8 +1,9 @@
 // One pinned demo window, rendered as a card: status strip + word, day, range, and the four
 // worst-in-window readings, plus a top-corner ✕ to unpin. It is pure presentation — the section
-// re-derives the score from the live forecast on every render (scoreNamedWindow), so the status
-// firms up here with no card-level logic. Renders nothing when that score is null (the window's
-// day has rolled off the 10-day horizon), so a stale pin simply drops out without erroring.
+// renders one of these per pin (in pin order) and re-derives the score from the live forecast on
+// every render (scoreNamedWindow), so the status firms up here with no card-level logic. Renders
+// nothing when that score is null (the window's day has rolled off the 10-day horizon), so a stale
+// pin simply drops out without erroring.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -39,8 +40,8 @@ const UnpinButton = styled(IconButton)(({ theme }) => ({
 }));
 
 interface PinnedWindowSlotProps {
-  date: string;
-  score: NamedWindowScore | null; // null = the window's day has rolled off the horizon → hide the card
+  date: string; // the pinned day's calendar key — always present (the section renders one card per pin)
+  score: NamedWindowScore | null; // null = its day rolled off the 10-day horizon → the card hides itself
   lengthHours: number; // the demo length frozen at pin time (independent of the live config)
   onUnpin: () => void;
 }

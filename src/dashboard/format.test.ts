@@ -3,6 +3,7 @@ import {
   formatFactorValue,
   formatDayLabel,
   formatHourLabel,
+  formatHourOfDay,
   formatClockTime,
   MISSING_DISPLAY,
 } from './format';
@@ -60,5 +61,31 @@ describe('date & time formatting (offset-aware, no UTC drift)', () => {
   it('formatClockTime keeps minutes for sunrise/sunset', () => {
     expect(formatClockTime('2026-05-23T06:13:00-05:00')).toBe('6:13 AM');
     expect(formatClockTime('2026-05-23T19:42:00-05:00')).toBe('7:42 PM');
+  });
+});
+
+// Defensive guards: the scoring layer shouldn't emit NaN or malformed keys, but if bad data ever
+// reaches a formatter the cell must read as the missing marker, never "NaN kn" / "undefined".
+describe('formatting guards against bad values', () => {
+  it('a non-finite factor value reads as the missing marker, never "NaN <unit>"', () => {
+    expect(formatFactorValue(Factor.Wind, NaN)).toBe(MISSING_DISPLAY);
+    expect(formatFactorValue(Factor.Visibility, Infinity)).toBe(MISSING_DISPLAY);
+  });
+
+  it('formatDayLabel returns a neutral placeholder for a malformed key, not "undefined"', () => {
+    const label = formatDayLabel('not-a-date');
+    expect(label.dow).toBe(MISSING_DISPLAY);
+    expect(label.weekday).toBe(MISSING_DISPLAY);
+    expect(label.month).toBe(MISSING_DISPLAY);
+  });
+
+  it('formatHourLabel/formatClockTime degrade to the missing marker for empty or malformed ISO', () => {
+    expect(formatClockTime('')).toBe(MISSING_DISPLAY);
+    expect(formatHourLabel('2026-05-23TZZ:00')).toBe(MISSING_DISPLAY); // hour slice isn't a number
+    expect(formatClockTime('2026-05-23TZZ:ZZ')).toBe(MISSING_DISPLAY);
+  });
+
+  it('formatHourOfDay reads as the missing marker for a non-finite hour, never "NaN AM"', () => {
+    expect(formatHourOfDay(NaN)).toBe(MISSING_DISPLAY);
   });
 });

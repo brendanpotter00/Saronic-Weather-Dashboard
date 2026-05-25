@@ -5,17 +5,15 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { Status, Factor } from '../../scoring/status';
+import { Status, Factor, FACTOR_ORDER } from '../../scoring/status';
 import type { ScoredFactor } from '../../scoring/scoring';
 import { statusMainColor } from '../../theme/statusColor';
 import { formatFactorValue, FACTOR_LABEL } from '../format';
 
-const ORDER: Factor[] = [Factor.Wind, Factor.Wave, Factor.Precipitation, Factor.Visibility];
-
 export function WindowFactorGrid({ factors }: { factors: Record<Factor, ScoredFactor> }) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
-      {ORDER.map((factor) => {
+      {FACTOR_ORDER.map((factor) => {
         const scored = factors[factor];
         const color = scored.status === Status.Go ? 'text.primary' : statusMainColor(scored.status);
         return (

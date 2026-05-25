@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { centeredWindowStart, scoreNamedWindow } from './window';
+import { centeredWindowStart, clampWindow, scoreNamedWindow } from './window';
 import { scoreDay } from './scoring';
 import { Status, Factor } from './status';
 import type { CombinedHour, DayForecast } from '../model';
@@ -65,6 +65,26 @@ describe('centeredWindowStart — center the fixed-length block on the hovered h
 
   it('handles a window that exactly fills the bounds', () => {
     expect(centeredWindowStart(10, 6, { startHour: 8, endHour: 13 })).toBe(8); // span 6 == 6
+  });
+});
+
+describe('clampWindow — confine a stored window to the daylight bounds before scoring echoes it', () => {
+  it('trims a partially-overlapping window to the in-bounds overlap', () => {
+    expect(clampWindow({ startHour: 4, endHour: 12 }, { startHour: 6, endHour: 19 })).toEqual({
+      startHour: 6,
+      endHour: 12,
+    });
+  });
+
+  it('falls back to the full bounds when a stale window sits entirely outside them', () => {
+    // A window Tara picked can outlive its data: a refetch rolls the 10-day horizon forward so the
+    // earliest/latest daylight HOUR shifts, leaving her stored window past the new bounds. Clamping
+    // there would invert the window (start >= end); we hand back the full bounds — a valid, non-empty
+    // range — instead of an empty window that would flip every day to no-go after an innocuous refetch.
+    expect(clampWindow({ startHour: 18, endHour: 22 }, { startHour: 6, endHour: 12 })).toEqual({
+      startHour: 6,
+      endHour: 12,
+    });
   });
 });
 
