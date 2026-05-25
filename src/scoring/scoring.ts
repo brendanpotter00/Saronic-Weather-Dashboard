@@ -32,6 +32,7 @@ import {
   precipitationTier,
   visibilityTier,
 } from './tiers';
+import { quantizeReading } from './quantize';
 
 // ---- Render-ready result shapes (what the UI consumes) ----
 export interface ScoredFactor {
@@ -94,10 +95,18 @@ function toScoredFactor(reading: FactorReading): ScoredFactor {
 }
 
 export function scoreHour(hour: CombinedHour, isInWindow = true): ScoredHour {
-  const wind: FactorReading = { factor: Factor.Wind, tier: windTier(hour.windSpeedKn), value: hour.windSpeedKn };
-  const wave: FactorReading = { factor: Factor.Wave, tier: waveTier(hour.waveHeightFt), value: hour.waveHeightFt };
-  const precipitation: FactorReading = { factor: Factor.Precipitation, tier: precipitationTier(hour.precipitationIn), value: hour.precipitationIn };
-  const visibility: FactorReading = { factor: Factor.Visibility, tier: visibilityTier(hour.visibilityMiles), value: hour.visibilityMiles };
+  // Quantize ONCE to display resolution, then tier AND store that same number — so the colour
+  // (from the tier) and the label (from `value`) can never disagree at a threshold boundary.
+  // See quantize.ts for why the rounding direction is per factor.
+  const windValue = quantizeReading(Factor.Wind, hour.windSpeedKn);
+  const waveValue = quantizeReading(Factor.Wave, hour.waveHeightFt);
+  const precipitationValue = quantizeReading(Factor.Precipitation, hour.precipitationIn);
+  const visibilityValue = quantizeReading(Factor.Visibility, hour.visibilityMiles);
+
+  const wind: FactorReading = { factor: Factor.Wind, tier: windTier(windValue), value: windValue };
+  const wave: FactorReading = { factor: Factor.Wave, tier: waveTier(waveValue), value: waveValue };
+  const precipitation: FactorReading = { factor: Factor.Precipitation, tier: precipitationTier(precipitationValue), value: precipitationValue };
+  const visibility: FactorReading = { factor: Factor.Visibility, tier: visibilityTier(visibilityValue), value: visibilityValue };
   const readings = [wind, wave, precipitation, visibility];
 
   // Fail-safe: an incomplete hour (missing any factor) can never clear, regardless of the

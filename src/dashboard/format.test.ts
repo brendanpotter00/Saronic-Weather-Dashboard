@@ -15,14 +15,17 @@ describe('formatFactorValue', () => {
     }
   });
 
-  it('wind rounds to a whole knot with unit appended', () => {
-    expect(formatFactorValue(Factor.Wind, 18.4)).toBe('18 kn');
-    expect(formatFactorValue(Factor.Wind, 14.6)).toBe('15 kn');
+  // format is now a pure stringifier: it renders at the factor's display precision and does NOT
+  // round across a threshold (scoring already quantized the value — see quantize.ts). So a value
+  // shown here is rendered verbatim to one decimal for wind, not snapped to a whole knot.
+  it('wind renders one decimal knot with unit appended', () => {
+    expect(formatFactorValue(Factor.Wind, 18.4)).toBe('18.4 kn');
+    expect(formatFactorValue(Factor.Wind, 15)).toBe('15.0 kn');
   });
 
   it('wave keeps one decimal foot with unit appended', () => {
     expect(formatFactorValue(Factor.Wave, 2)).toBe('2.0 ft');
-    expect(formatFactorValue(Factor.Wave, 2.34)).toBe('2.3 ft');
+    expect(formatFactorValue(Factor.Wave, 2.3)).toBe('2.3 ft');
   });
 
   it('precipitation: clean "0 in" for no rain, and real-but-tiny rain never rounds away', () => {
@@ -31,10 +34,10 @@ describe('formatFactorValue', () => {
     expect(formatFactorValue(Factor.Precipitation, 0.04)).toBe('0.04 in');
   });
 
-  it('visibility caps at the sensor ceiling and rounds otherwise, unit appended', () => {
+  it('visibility caps at the sensor ceiling and renders one decimal otherwise, unit appended', () => {
     expect(formatFactorValue(Factor.Visibility, 16)).toBe('15+ mi');
     expect(formatFactorValue(Factor.Visibility, 15)).toBe('15+ mi');
-    expect(formatFactorValue(Factor.Visibility, 7.2)).toBe('7 mi');
+    expect(formatFactorValue(Factor.Visibility, 9.8)).toBe('9.8 mi'); // the boundary case: never "10 mi"
   });
 });
 

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { scoreForecast, scoreDay, scoreHour } from './scoring';
+import type { ScoredFactor, ScoredHour } from './scoring';
 import { defaultAvailableWindow, daylightEnvelope } from './window';
 import { Status, Factor } from './status';
+import { formatFactorValue } from '../dashboard/format';
 import type { CombinedForecast, CombinedHour, DayForecast } from '../model';
 
 // An all-clear hour; tests override one factor at a time to probe a single boundary.
@@ -77,6 +79,51 @@ describe('scoreHour — factor boundaries (pins the derived caution thresholds)'
     expect(scoreHour(mkHour(7, { precipitationIn: 0.002 })).precipitation.status).toBe(Status.NoGo);
     expect(scoreHour(mkHour(7, { precipitationIn: 0.01 })).precipitation.status).toBe(Status.NoGo);
   });
+});
+
+// The value scoring stores is the SAME number that drives the tier, quantized to display
+// resolution (see quantize.ts). These pin the two behaviours that fixed the reported bug.
+describe('scoreHour — colour and label come from one quantized number', () => {
+  it('the reported bug: a 9.88 mi visibility shows "9.8 mi" AND scores Caution (never a green "10 mi")', () => {
+    const scored = scoreHour(mkHour(11, { visibilityMiles: 15900 / 1609.344 })); // live May-24 11:00 reading
+    expect(scored.visibility.status).toBe(Status.Caution);
+    expect(formatFactorValue(Factor.Visibility, scored.visibility.value)).toBe('9.8 mi');
+  });
+
+  it('conservative shift: a 14.96 kn wind rounds UP to "15.0 kn" and scores Caution, not a green "15 kn"', () => {
+    const scored = scoreHour(mkHour(7, { windSpeedKn: 14.96 }));
+    expect(scored.wind.status).toBe(Status.Caution);
+    expect(formatFactorValue(Factor.Wind, scored.wind.value)).toBe('15.0 kn');
+  });
+});
+
+// The headline regression guard, written as the inverse of the bug report ("a '10 mi' cell was
+// orange next to green '10 mi' cells"). Because one quantized number feeds both the tier and the
+// label, every distinct label string must map to exactly one status. Sweeping each factor finely
+// across all its thresholds would FAIL on the old code (round-then-classify split) and passes now.
+describe('label/colour can never contradict — no displayed value appears in two colours', () => {
+  const readingFor = (scored: ScoredHour, factor: Factor): ScoredFactor => scored[factor];
+
+  const sweepCases: { factor: Factor; field: keyof CombinedHour; from: number; to: number; step: number }[] = [
+    { factor: Factor.Wind, field: 'windSpeedKn', from: 0, to: 30, step: 0.01 },
+    { factor: Factor.Wave, field: 'waveHeightFt', from: 0, to: 8, step: 0.01 },
+    { factor: Factor.Visibility, field: 'visibilityMiles', from: 0, to: 20, step: 0.01 },
+    { factor: Factor.Precipitation, field: 'precipitationIn', from: 0, to: 1, step: 0.005 },
+  ];
+
+  for (const { factor, field, from, to, step } of sweepCases) {
+    it(`${factor}: every distinct label maps to exactly one status`, () => {
+      const labelToStatus = new Map<string, Status>();
+      for (let raw = from; raw <= to + 1e-9; raw += step) {
+        const v = Number(raw.toFixed(4));
+        const reading = readingFor(scoreHour(mkHour(7, { [field]: v } as Partial<CombinedHour>)), factor);
+        const label = formatFactorValue(factor, reading.value);
+        const seen = labelToStatus.get(label);
+        if (seen === undefined) labelToStatus.set(label, reading.status);
+        else expect(`${label} -> ${reading.status}`).toBe(`${label} -> ${seen}`);
+      }
+    });
+  }
 });
 
 describe('scoreHour — worst-factor-wins and limiting factors', () => {
