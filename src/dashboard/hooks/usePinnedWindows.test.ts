@@ -1,9 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePinnedWindows } from './usePinnedWindows';
 
 const PIN_A = { date: '2026-05-24', startHour: 8, lengthHours: 6 };
 const PIN_B = { date: '2026-05-25', startHour: 9, lengthHours: 4 };
+
+// The hook now hydrates from localStorage on mount, so each test starts from a clean store.
+beforeEach(() => localStorage.clear());
 
 describe('usePinnedWindows', () => {
   it('starts empty with no pending pin', () => {
@@ -66,5 +69,39 @@ describe('usePinnedWindows', () => {
 
     act(() => result.current.unpin(PIN_A));
     expect(result.current.pinnedWindows).toEqual([PIN_B]);
+  });
+
+  it('hydrates its initial list from localStorage on mount', () => {
+    localStorage.setItem('saronic.pinnedWindows.v1', JSON.stringify([PIN_A, PIN_B]));
+    const { result } = renderHook(() => usePinnedWindows());
+    expect(result.current.pinnedWindows).toEqual([PIN_A, PIN_B]);
+  });
+
+  it('persists a confirmed pin so a fresh mount restores it', () => {
+    const first = renderHook(() => usePinnedWindows());
+    act(() => first.result.current.requestPin('2026-05-24', 8, 6));
+    act(() => first.result.current.confirmPin());
+
+    const next = renderHook(() => usePinnedWindows());
+    expect(next.result.current.pinnedWindows).toEqual([PIN_A]);
+  });
+
+  it('persists an unpin so a fresh mount stays empty', () => {
+    localStorage.setItem('saronic.pinnedWindows.v1', JSON.stringify([PIN_A]));
+    const first = renderHook(() => usePinnedWindows());
+    act(() => first.result.current.unpin(PIN_A));
+
+    const next = renderHook(() => usePinnedWindows());
+    expect(next.result.current.pinnedWindows).toEqual([]);
+  });
+
+  it('does not persist a requested-but-unconfirmed pin (pending dialog state stays transient)', () => {
+    const first = renderHook(() => usePinnedWindows());
+    act(() => first.result.current.requestPin('2026-05-24', 8, 6));
+    // Storage holds only the committed list ([]), never the pending pin.
+    expect(JSON.parse(localStorage.getItem('saronic.pinnedWindows.v1') ?? '[]')).toEqual([]);
+
+    const next = renderHook(() => usePinnedWindows());
+    expect(next.result.current.pinnedWindows).toEqual([]);
   });
 });

@@ -60,6 +60,8 @@ function renderApp() {
 
 beforeEach(() => {
   mockUseQuery.mockReset();
+  // Pins now persist to localStorage, so clear it between tests or one test's pins hydrate the next.
+  localStorage.clear();
 });
 
 // Restore any console spies (used by the unknown-error and empty-days cases) so a silenced
