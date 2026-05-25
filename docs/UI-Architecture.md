@@ -151,8 +151,8 @@ These are intentionally **not built**, but the structure is ready so each is add
    New scoring surface in `src/scoring/window.ts`: `centeredWindowStart` (the only selection math —
    center, lean-later, clamp at dawn/dusk) and `scoreNamedWindow` (rolls a named block up to one
    status + worst-in-window readings, fail-safe no-go when it can't be fully evaluated). Each
-   `ScoredHour` now carries `clockHour` so components never parse a timestamp. Full design:
-   **`docs/plan-pin-window.md`**; reference prototype **`docs/prototype-window-pin.html`**.
+   `ScoredHour` now carries `clockHour` so components never parse a timestamp. Reference
+   prototype: **`docs/prototype-window-pin.html`**.
 
 3. **Multiple cities (dropdown + per-city thresholds).** `SITES` is already a list and `Site`
    documents that timezone/thresholds belong on it. *Seam:* a `CitySelect` in `DashboardHeader`
