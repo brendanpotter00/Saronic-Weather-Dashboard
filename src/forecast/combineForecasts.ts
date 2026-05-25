@@ -35,23 +35,23 @@ export function buildCombinedForecast(
   marine: MarineResponse | null,
 ): CombinedForecast {
   const waveByTime = buildTimestampToWaveHeight(marine);
-  const h = forecast.hourly;
+  const hourly = forecast.hourly;
   const timeZone = forecast.timezone;
 
   // 1) Fuse every daylight forecast hour with its wave height (matched by time).
   const hours: CombinedHour[] = [];
-  for (let i = 0; i < h.time.length; i++) {
-    if (h.is_day[i] !== IS_DAYLIGHT) continue; // daylight only — demos are daytime
-    const rawTime = h.time[i]; // raw Open-Meteo local string — the join key
+  for (let i = 0; i < hourly.time.length; i++) {
+    if (hourly.is_day[i] !== IS_DAYLIGHT) continue; // daylight only — demos are daytime
+    const rawTime = hourly.time[i]; // raw Open-Meteo local string — the join key
     const time = localTimeToSiteIso(rawTime, timeZone);
     if (time === null) continue; // missing/unparseable timestamp — can't place this hour
     // Wind and wave go through the same fail-safe guard as the converted factors
     // (visibility/precip): a NaN or stray string from a malformed-but-200 body becomes
     // null, so it can't survive `?? null` and falsely make the hour `complete`.
-    const windSpeedKn = finiteOrNull(h.wind_speed_10m[i]);
+    const windSpeedKn = finiteOrNull(hourly.wind_speed_10m[i]);
     const waveHeightFt = finiteOrNull(waveByTime.get(rawTime)); // null when marine has no match
-    const precipitationIn = millimetersToInches(h.precipitation[i]);
-    const visibilityMiles = metersToMiles(h.visibility[i]);
+    const precipitationIn = millimetersToInches(hourly.precipitation[i]);
+    const visibilityMiles = metersToMiles(hourly.visibility[i]);
     hours.push({
       time,
       windSpeedKn,
@@ -82,17 +82,17 @@ export function buildCombinedForecast(
   }
 
   // 3) Drive day order/metadata from daily.time (authoritative 10-day list).
-  const d = forecast.daily;
+  const daily = forecast.daily;
   // Day metadata fields are nullable: a short/absent daily array (or a polar
   // sunrise/sunset) yields a missing value at an index — carry that through as null
   // rather than fabricating a timestamp or throwing.
-  const days: DayForecast[] = d.time.map((date, i) => {
-    const sunriseTime = localTimeToSiteIso(d.sunrise[i], timeZone);
-    const sunsetTime = localTimeToSiteIso(d.sunset[i], timeZone);
+  const days: DayForecast[] = daily.time.map((date, i) => {
+    const sunriseTime = localTimeToSiteIso(daily.sunrise[i], timeZone);
+    const sunsetTime = localTimeToSiteIso(daily.sunset[i], timeZone);
     // Shares the same fail-safe guard as the hourly numeric factors (wind/wave/etc.):
     // a NaN or stray string from a malformed-but-200 body becomes null, so it can't
     // survive `?? null` and falsely satisfy the `complete` predicate with garbage metadata.
-    const daylightDurationSeconds = finiteOrNull(d.daylight_duration[i]);
+    const daylightDurationSeconds = finiteOrNull(daily.daylight_duration[i]);
     const hours = hoursByDate.get(date) ?? [];
     return {
       date,

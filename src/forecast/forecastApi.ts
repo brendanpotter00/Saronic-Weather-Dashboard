@@ -49,7 +49,7 @@ function marineUrl(site: Site): string {
 // `.hourly`/`.daily` and the whole query throws instead of erroring/degrading cleanly.
 // The guard must cover EVERY field the consumer touches, not just `time`: a body with
 // `hourly.time` present but `is_day`/`sunrise`/etc. absent would still pass a `time`-only
-// check and then throw on `h.is_day[i]` / `d.sunrise[i]` deep inside buildCombinedForecast.
+// check and then throw on `hourly.is_day[i]` / `daily.sunrise[i]` deep inside buildCombinedForecast.
 // `timezone` is included because buildCombinedForecast feeds it into Intl.DateTimeFormat
 // to resolve each hour's UTC offset: a missing/empty zone would throw a RangeError (or,
 // if merely absent, silently default to the browser zone -> wrong offsets on every hour)

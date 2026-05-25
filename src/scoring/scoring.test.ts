@@ -214,6 +214,48 @@ describe('scoreDay — contiguity by timestamp, not array index', () => {
   });
 });
 
+// The contiguity check measures the gap between TRUE INSTANTS (Date.parse of the offset-aware
+// ISO), never the clock-hour digits or array adjacency. Across a DST boundary the data layer
+// stamps a different UTC offset, so two hours whose wall-clock labels look 1h apart are actually
+// 2h apart as instants — and the run must break. (Physically the transition is at night and gets
+// filtered before scoring; this pins the MECHANISM the comment in bestAchievableTier relies on, so
+// a future refactor to clock-hour/array adjacency would fail here.)
+describe('scoreDay — contiguity by true instant across a DST offset change', () => {
+  const isoAt = (hourOfDay: number, offset: string): string =>
+    `2026-11-01T${String(hourOfDay).padStart(2, '0')}:00:00${offset}`;
+  const hourAt = (hourOfDay: number, offset: string): CombinedHour => ({ time: isoAt(hourOfDay, offset), ...GO_FACTORS });
+
+  it('breaks the run when the UTC offset shifts mid-sequence (no false 6h candidate)', () => {
+    // 07–09 at -05:00 then 10–12 at -06:00: six clear wall-clock hours, but 09:00-05:00 → 10:00-06:00
+    // is a 2h instant step, so no contiguous 6-hour instant run exists.
+    const hours = [
+      hourAt(7, '-05:00'),
+      hourAt(8, '-05:00'),
+      hourAt(9, '-05:00'),
+      hourAt(10, '-06:00'),
+      hourAt(11, '-06:00'),
+      hourAt(12, '-06:00'),
+    ];
+    expect(scoreDay(mkDay(hours, { date: '2026-11-01' }), 6).isCandidate).toBe(false);
+  });
+
+  it('a uniform-offset 6h run stays contiguous (control)', () => {
+    const hours = Array.from({ length: 6 }, (_, i) => hourAt(7 + i, '-06:00'));
+    const day = scoreDay(mkDay(hours, { date: '2026-11-01' }), 6);
+    expect(day.badge).toBe(Status.Go);
+    expect(day.isCandidate).toBe(true);
+  });
+
+  it('a malformed (unparseable) timestamp mid-run breaks contiguity — fail-safe, never a silent candidate', () => {
+    // An unparseable time yields a non-finite instant; bestAchievableTier's `!Number.isFinite` guard
+    // restarts the run rather than treating NaN-NaN as a 1h step. (Unreachable in practice —
+    // combineForecasts drops unparseable hours upstream — but the guard claims safety, so pin it.)
+    const hours = goHours(7, 6);
+    hours[3] = { ...mkHour(10), time: 'not-a-timestamp' };
+    expect(scoreDay(mkDay(hours), 6).isCandidate).toBe(false);
+  });
+});
+
 describe('scoreForecast — whole-tree enrichment and marine-down fail-safe', () => {
   it('passes timezone and marineAvailable through', () => {
     const forecast: CombinedForecast = {
