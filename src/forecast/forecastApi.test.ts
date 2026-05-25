@@ -128,6 +128,23 @@ describe('forecastApi.getCombinedForecast queryFn', () => {
     expect(result.data).toBeUndefined();
   });
 
+  it('errors with CUSTOM_ERROR when the forecast body is missing latitude/longitude', async () => {
+    // Shaped right but without the coords buildCombinedForecast emits as `site` — without the
+    // guard this would silently yield site.latitude === undefined. JSON.stringify drops the
+    // `undefined` keys, so the parsed body genuinely lacks them.
+    stubFetch({
+      forecast: () => jsonResponse({ ...validForecast, latitude: undefined, longitude: undefined }),
+      marine: () => jsonResponse(validMarine),
+    });
+
+    const store = makeStore();
+    const result = await store.dispatch(forecastApi.endpoints.getCombinedForecast.initiate());
+
+    expect(result.isError).toBe(true);
+    expect(errorStatus(result.error)).toBe('CUSTOM_ERROR');
+    expect(result.data).toBeUndefined();
+  });
+
   it('degrades gracefully when marine fails: forecast still renders, waves marked unavailable', async () => {
     stubFetch({
       forecast: () => jsonResponse(validForecast),

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import App from './App';
 import { ThemeProvider } from './theme/ThemeProvider';
@@ -62,9 +62,15 @@ beforeEach(() => {
   mockUseQuery.mockReset();
 });
 
+// Restore any console spies (used by the unknown-error and empty-days cases) so a silenced
+// console doesn't leak into later tests.
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('Dashboard (via App)', () => {
   it('renders the header, the legend, and one column per forecast day', () => {
-    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, isFetching: false, isError: false, error: undefined });
     renderApp();
 
     expect(screen.getByRole('heading', { name: /gulfport.*weather/i })).toBeInTheDocument();
@@ -77,7 +83,7 @@ describe('Dashboard (via App)', () => {
   });
 
   it('defaults the detail to the first day and switches when another day is clicked', () => {
-    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, isFetching: false, isError: false, error: undefined });
     renderApp();
 
     // Full weekday names appear only in the detail card (columns show the short "SUN"), so they
@@ -94,6 +100,8 @@ describe('Dashboard (via App)', () => {
     mockUseQuery.mockReturnValue({
       data: forecast({ marineAvailable: false, marineSite: null }),
       isLoading: false,
+      isFetching: false,
+      isError: false,
       error: undefined,
     });
     renderApp();
@@ -101,7 +109,23 @@ describe('Dashboard (via App)', () => {
   });
 
   it('shows a loading state while fetching (no alert)', () => {
-    mockUseQuery.mockReturnValue({ data: undefined, isLoading: true, error: undefined });
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, isError: false, error: undefined });
+    renderApp();
+    expect(screen.getByLabelText(/loading forecast/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the loading skeleton (not the stale error) while a Retry is in flight', () => {
+    // isFetching=true with no data yet — the state right after clicking Retry from an error.
+    // The view must show progress, not re-flash the previous error.
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: true,
+      isError: true,
+      error: { status: 500 },
+      refetch: vi.fn(),
+    });
     renderApp();
     expect(screen.getByLabelText(/loading forecast/i)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -109,7 +133,7 @@ describe('Dashboard (via App)', () => {
 
   it('shows a tailored error alert with a working Retry when the forecast fails', () => {
     const refetch = vi.fn();
-    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, error: { status: 500 }, refetch });
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isError: true, error: { status: 500 }, refetch });
     renderApp();
     const alert = screen.getByRole('alert');
     // 500 → 'server' kind → the server-specific copy (not the generic fallback).
@@ -122,6 +146,8 @@ describe('Dashboard (via App)', () => {
     mockUseQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
+      isFetching: false,
+      isError: true,
       error: { status: 'FETCH_ERROR', error: 'down' },
       refetch: vi.fn(),
     });
@@ -131,6 +157,8 @@ describe('Dashboard (via App)', () => {
     mockUseQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
+      isFetching: false,
+      isError: true,
       error: { status: 429 },
       refetch: vi.fn(),
     });
@@ -141,6 +169,53 @@ describe('Dashboard (via App)', () => {
     );
     expect(within(screen.getByRole('alert')).getByText(/too many requests/i)).toBeInTheDocument();
   });
+
+  it('shows the badData copy for a malformed-body (CUSTOM_ERROR) failure', () => {
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: { status: 'CUSTOM_ERROR', error: 'malformed' },
+      refetch: vi.fn(),
+    });
+    renderApp();
+    expect(within(screen.getByRole('alert')).getByText(/couldn't read the forecast/i)).toBeInTheDocument();
+  });
+
+  it('falls back to the generic copy for an unmapped status (e.g. 404 → unknown)', () => {
+    // 404 classifies as 'unknown' (deliberate); the hook logs the raw error — silence it.
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: { status: 404 },
+      refetch: vi.fn(),
+    });
+    renderApp();
+    expect(within(screen.getByRole('alert')).getByText(/couldn't load the forecast/i)).toBeInTheDocument();
+  });
+
+  it('shows an actionable empty state (Retry + a warning) when the forecast scores to zero days', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const refetch = vi.fn();
+    mockUseQuery.mockReturnValue({
+      data: forecast({ days: [] }),
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: undefined,
+      refetch,
+    });
+    renderApp();
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByText(/returned no days/i)).toBeInTheDocument();
+    fireEvent.click(within(alert).getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalled(); // the zero-days anomaly is surfaced, not silent
+  });
 });
 
 // The pin flow: click an hour → confirm dialog (with the centered, clamped window + rolled-up
@@ -148,7 +223,7 @@ describe('Dashboard (via App)', () => {
 // (12 clear hours), the demo length defaults to 6, so a hover centers leaning later and clamps.
 describe('pin a demo window', () => {
   beforeEach(() => {
-    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, isFetching: false, isError: false, error: undefined });
   });
 
   function pinnedCard() {
@@ -267,7 +342,7 @@ describe('pin a demo window', () => {
 // per-day aria-label ("Pinned demo window: <weekday>, ...").
 describe('pinning multiple windows', () => {
   beforeEach(() => {
-    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, isFetching: false, isError: false, error: undefined });
   });
 
   function pinnedCards() {

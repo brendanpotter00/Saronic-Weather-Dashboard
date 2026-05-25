@@ -3,6 +3,7 @@ import {
   formatFactorValue,
   formatDayLabel,
   formatHourLabel,
+  formatHourOfDay,
   formatClockTime,
   MISSING_DISPLAY,
 } from './format';
@@ -82,5 +83,9 @@ describe('formatting guards against bad values', () => {
     expect(formatClockTime('')).toBe(MISSING_DISPLAY);
     expect(formatHourLabel('2026-05-23TZZ:00')).toBe(MISSING_DISPLAY); // hour slice isn't a number
     expect(formatClockTime('2026-05-23TZZ:ZZ')).toBe(MISSING_DISPLAY);
+  });
+
+  it('formatHourOfDay reads as the missing marker for a non-finite hour, never "NaN AM"', () => {
+    expect(formatHourOfDay(NaN)).toBe(MISSING_DISPLAY);
   });
 });

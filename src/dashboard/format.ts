@@ -72,6 +72,7 @@ export function formatClockTime(iso: string): string {
 // "6 AM", "8 PM" — a bare clock hour from an integer 0–23, for the available-window bounds and
 // its picker (no ISO string, no minutes).
 export function formatHourOfDay(hour: number): string {
+  if (!Number.isFinite(hour)) return MISSING_DISPLAY; // a NaN bound → dash, never "NaN AM"
   const { h12, ap } = meridiem(hour);
   return `${h12} ${ap}`;
 }

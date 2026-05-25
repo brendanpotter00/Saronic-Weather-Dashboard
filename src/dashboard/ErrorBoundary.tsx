@@ -1,8 +1,8 @@
 // Last-resort guard: if any render below throws — a bad assumption in the view, NOT a fetch
 // failure (those are handled in Dashboard with tailored copy) — show a styled fallback instead
 // of React unmounting the tree to a blank white page. A render crash won't be cured by a
-// refetch, so the recovery action is a full reload. Lives inside ThemeProvider (see main.tsx)
-// so MUI styling resolves. It is a class component because only the class lifecycles
+// refetch, so the recovery action is a full reload. Mounted in App.tsx, inside the ThemeProvider
+// that main.tsx wraps App in, so MUI styling resolves. It is a class component because only the class lifecycles
 // (getDerivedStateFromError / componentDidCatch) can catch render errors — there is no hook
 // equivalent.
 

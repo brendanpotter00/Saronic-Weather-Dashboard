@@ -3,7 +3,7 @@
 // the selected day's detail. Loading/error/empty are handled here so the children can assume a
 // present, non-empty ScoredForecast.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Skeleton from '@mui/material/Skeleton';
@@ -38,7 +38,7 @@ export function Dashboard() {
   // 6-hour demo) and echoes them back, which the control then seeds from. Dashboard-wide, lifted
   // out of any single day. Local view state with one owner (mirrors `selectedDate`, no Redux).
   const [windowConfig, setWindowConfig] = useState<ScoringOptions | null>(null);
-  const { scored, isLoading, isError, errorKind, refetch } = useScoredForecast(windowConfig ?? undefined);
+  const { scored, isLoading, isFetching, isError, errorKind, refetch } = useScoredForecast(windowConfig ?? undefined);
   // null = "no explicit choice yet" → fall back to the first day (today). Keyed by the stable
   // date string, not an index, so it survives a refetch that reorders/replaces the array.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -48,7 +48,20 @@ export function Dashboard() {
   const [pinnedWindows, setPinnedWindows] = useState<PinnedWindow[]>([]);
   const [dialogWindow, setDialogWindow] = useState<WindowSelection | null>(null);
 
-  if (isLoading) {
+  // A valid 200 that scores to zero days means the daylight filter or the day-join dropped
+  // everything — almost certainly an upstream/scoring bug, not normal operation. The UI shows a
+  // calm empty state below (with Retry); log it so the anomaly isn't invisible. Keyed so it warns
+  // once per such result, not on every render.
+  const hasNoDays = scored !== undefined && scored.days.length === 0;
+  useEffect(() => {
+    if (hasNoDays) {
+      console.warn('Forecast scored to zero days — daylight filter or day-join dropped all days.');
+    }
+  }, [hasNoDays]);
+
+  // `isFetching` (not just first-load `isLoading`) so clicking Retry from the error state below
+  // shows the skeleton again instead of silently re-flashing the same error.
+  if (isLoading || isFetching) {
     return (
       <Container sx={{ py: { xs: 2, md: 4 } }}>
         <Stack spacing={2} aria-busy="true" aria-label="Loading forecast">
@@ -82,7 +95,16 @@ export function Dashboard() {
   if (scored.days.length === 0) {
     return (
       <Container sx={{ py: { xs: 2, md: 4 } }}>
-        <Alert severity="info">The forecast returned no days.</Alert>
+        <Alert
+          severity="info"
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          The forecast returned no days.
+        </Alert>
       </Container>
     );
   }

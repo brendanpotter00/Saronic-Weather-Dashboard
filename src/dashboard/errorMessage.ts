@@ -5,8 +5,8 @@
 import type { ForecastErrorKind } from '../forecast/errorKind';
 
 export interface ErrorCopy {
-  title: string;
-  detail: string;
+  readonly title: string;
+  readonly detail: string;
 }
 
 export const FORECAST_ERROR_COPY: Record<ForecastErrorKind, ErrorCopy> = {

@@ -120,10 +120,10 @@ npm run lint     # eslint
 
 - Source lives in `src/`; static assets in `public/`.
 - **See error/edge states locally.** Append `?simulate=` to the dev URL to force any failure
-  state without breaking anything: `network` (offline), `429` (rate-limit), `server` (5xx),
-  `malformed` (bad body), `marine-down` (degraded — waves unavailable), `empty` (no days),
-  `throw` (render crash → error boundary). DEV-only (`import.meta.env.DEV`), tree-shaken out of
-  production. Source: `src/forecast/simulate.ts`. Failure→message mapping is classified once at
+  state without breaking anything: `network`/`offline` (offline), `429` (rate-limit),
+  `server`/`forecast-error` (5xx), `malformed` (bad body), `marine-down` (degraded — waves
+  unavailable), `empty` (no days), `throw` (render crash → error boundary). DEV-only
+  (`import.meta.env.DEV`), tree-shaken out of production. Source: `src/forecast/simulate.ts`. Failure→message mapping is classified once at
   the data layer (`forecast/errorKind.ts`) and rendered from `dashboard/errorMessage.ts`.
 - **Decisions matter more than polish** (per the brief). Keep code clean, readable, and
   maintainable over clever; prefer thoughtful go/no-go logic over calling every endpoint.
