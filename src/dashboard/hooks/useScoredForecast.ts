@@ -2,7 +2,8 @@
 // runs the (pure) scoring pass over it, memoised so expand/collapse never re-scores. Keeping
 // this in one hook means components depend on the render-ready `ScoredForecast` shape, not on
 // the query plumbing or the scoring function — and a future caller (e.g. a pinned-window
-// summary) reuses the same memoised result.
+// summary) binds to that same shape rather than the query/scoring plumbing. (RTK Query hands
+// every caller the same cached `data`, so each call memoises against identical inputs.)
 
 import { useEffect, useMemo } from 'react';
 import { useGetCombinedForecastQuery } from '../../forecast/forecastApi';
