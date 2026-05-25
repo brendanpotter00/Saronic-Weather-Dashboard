@@ -19,12 +19,17 @@ import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
 
-// A pinned/previewed window is identified by its day + start clock-hour; the length is derived
-// from the dashboard-wide demo length, never stored, so the card always reflects the current
-// setting and re-scores against the latest forecast.
-interface WindowRef {
+// A previewed pick from the hourly table, scored at the LIVE dashboard demo length.
+interface WindowSelection {
   date: string;
   startHour: number;
+}
+
+// A pinned window is its own independent, scheduled window: it FREEZES the demo length it was
+// pinned at, so later changes to the dashboard-wide demo length don't reshape it. It still
+// re-scores against the latest forecast each refetch — only the length is fixed.
+interface PinnedWindow extends WindowSelection {
+  lengthHours: number;
 }
 
 export function Dashboard() {
@@ -39,8 +44,8 @@ export function Dashboard() {
   // The window Tara has pinned to the top, and the one currently open in the confirm dialog (a
   // pending pin, or an Edit of the existing one). Both ephemeral view state with one owner, like
   // selectedDate — persistence is out of scope (picture it DB-saved).
-  const [pinnedWindow, setPinnedWindow] = useState<WindowRef | null>(null);
-  const [dialogWindow, setDialogWindow] = useState<WindowRef | null>(null);
+  const [pinnedWindow, setPinnedWindow] = useState<PinnedWindow | null>(null);
+  const [dialogWindow, setDialogWindow] = useState<WindowSelection | null>(null);
 
   if (isLoading) {
     return (
@@ -75,15 +80,17 @@ export function Dashboard() {
   const selected = scored.days.find((day) => day.date === selectedDate) ?? scored.days[0];
   const candidateCount = scored.days.filter((day) => day.isCandidate).length;
 
-  // Re-derive each window's score from the live forecast on every render — the pinned card and the
+  // Re-derive both windows' scores from the live forecast on every render — the pinned card and the
   // dialog stay dumb, and a refetch makes the status "firm up" with no card-level logic. A window
   // whose day has rolled off the 10-day horizon scores null and the slot/dialog simply hide.
-  const scoreFor = (ref: WindowRef | null) => {
-    const day = ref && scored.days.find((d) => d.date === ref.date);
-    return ref && day ? scoreNamedWindow(day, ref.startHour, scored.demoWindowHours) : null;
-  };
-  const pinnedScore = scoreFor(pinnedWindow);
-  const dialogScore = scoreFor(dialogWindow);
+  // The dialog previews at the LIVE demo length; the pinned card scores at its own frozen length.
+  const findDay = (date: string) => scored.days.find((day) => day.date === date);
+  const dialogDay = dialogWindow && findDay(dialogWindow.date);
+  const dialogScore =
+    dialogWindow && dialogDay ? scoreNamedWindow(dialogDay, dialogWindow.startHour, scored.demoWindowHours) : null;
+  const pinnedDay = pinnedWindow && findDay(pinnedWindow.date);
+  const pinnedScore =
+    pinnedWindow && pinnedDay ? scoreNamedWindow(pinnedDay, pinnedWindow.startHour, pinnedWindow.lengthHours) : null;
 
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
@@ -92,8 +99,7 @@ export function Dashboard() {
         <PinnedWindowSlot
           date={pinnedWindow?.date ?? null}
           score={pinnedScore}
-          demoWindowHours={scored.demoWindowHours}
-          onEdit={() => setDialogWindow(pinnedWindow)}
+          lengthHours={pinnedWindow?.lengthHours ?? 0}
           onUnpin={() => setPinnedWindow(null)}
         />
         <WindowControls
@@ -129,7 +135,8 @@ export function Dashboard() {
           score={dialogScore}
           demoWindowHours={scored.demoWindowHours}
           onConfirm={() => {
-            setPinnedWindow(dialogWindow);
+            // Freeze the current demo length into the pin so it stays independent of later config.
+            setPinnedWindow({ ...dialogWindow, lengthHours: scored.demoWindowHours });
             setDialogWindow(null);
           }}
           onClose={() => setDialogWindow(null)}

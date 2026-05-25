@@ -159,12 +159,77 @@ describe('pin a demo window', () => {
 
     const card = pinnedCard()!;
     expect(card).toBeInTheDocument();
-    expect(within(card).getByText(/scheduled demo window/i)).toBeInTheDocument();
+    expect(within(card).getByText(/pinned demo window/i)).toBeInTheDocument();
     expect(within(card).getByText(/8 AM – 1 PM · 6-hour demo/i)).toBeInTheDocument();
     const firstDay = formatDayLabel(DATES[0]);
     expect(within(card).getByText(new RegExp(`${firstDay.weekday},`))).toBeInTheDocument();
 
     fireEvent.click(within(card).getByRole('button', { name: /^unpin$/i }));
     expect(pinnedCard()).not.toBeInTheDocument();
+  });
+
+  it('a pinned window keeps its frozen length when the dashboard demo length changes', () => {
+    renderApp();
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 10 AM/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^pin window$/i }));
+    expect(within(pinnedCard()!).getByText(/8 AM – 1 PM · 6-hour demo/i)).toBeInTheDocument();
+
+    // Drop the dashboard-wide demo length to 4 hours.
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /demo length in hours/i }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('4 hours'));
+
+    // The pinned window is independent — still the 6-hour window it was pinned at.
+    expect(within(pinnedCard()!).getByText(/8 AM – 1 PM · 6-hour demo/i)).toBeInTheDocument();
+  });
+
+  it('hovering previews the centered block, and keyboard (Enter/Space) commits', () => {
+    renderApp();
+    const row = screen.getByRole('button', { name: /pin a demo window around 10 AM/i });
+
+    // Hover/focus previews (the selection highlight) without opening the dialog.
+    fireEvent.mouseEnter(row);
+    fireEvent.focus(row);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.mouseLeave(row.parentElement!); // clears the preview
+
+    // An unhandled key does nothing; Enter and Space open the confirm dialog.
+    fireEvent.keyDown(row, { key: 'a' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a day shorter than the demo length shows the no-fit hint and ignores clicks', () => {
+    const data = forecast();
+    data.days[0] = { ...data.days[0], hours: data.days[0].hours.slice(0, 3) }; // only 6–8 AM
+    mockUseQuery.mockReturnValue({ data, isLoading: false, error: undefined });
+    renderApp();
+
+    expect(screen.getByText(/daylight is shorter than the 6-hour demo length/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 6 AM/i }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('pins an incomplete window as a surfaced no-go (dialog and card both warn)', () => {
+    const data = forecast();
+    const hours = [...data.days[0].hours];
+    const tenAm = hours.findIndex((h) => h.time.slice(11, 13) === '10'); // inside the 8 AM–1 PM block
+    hours[tenAm] = { ...hours[tenAm], waveHeightFt: null, complete: false };
+    data.days[0] = { ...data.days[0], hours };
+    mockUseQuery.mockReturnValue({ data, isLoading: false, error: undefined });
+    renderApp();
+
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 10 AM/i }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/missing readings/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('NO-GO')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^pin window$/i }));
+    const card = pinnedCard()!;
+    expect(within(card).getByText(/missing readings/i)).toBeInTheDocument();
+    expect(within(card).getByText('NO-GO')).toBeInTheDocument();
   });
 });

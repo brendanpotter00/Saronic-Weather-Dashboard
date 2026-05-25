@@ -134,4 +134,32 @@ describe('scoreNamedWindow — roll a concrete block up to one status + worst-in
     const rescored = scoreNamedWindow(scoreDay(mkDay(windy)), 8, 6);
     expect(rescored.status).toBe(Status.NoGo);
   });
+
+  it('a start hour with no matching daylight hour degrades to a missing no-go (empty block)', () => {
+    const day = scoreDay(mkDay(goHours(7, 6)));
+    const score = scoreNamedWindow(day, 50, 6); // 50:00 doesn't exist
+    expect(score.complete).toBe(false);
+    expect(score.status).toBe(Status.NoGo);
+    expect(score.startTime).toBe('');
+    expect(score.endTime).toBe('');
+    expect(score.factors[Factor.Wind].value).toBeNull();
+  });
+
+  it('worst-in-window prefers a real reading over a missing one at the same no-go tier (both orders)', () => {
+    // A null reading and a real over-limit reading both score no-go; the card should show the real
+    // number regardless of which hour comes first in the block.
+    const realThenNull = scoreNamedWindow(
+      scoreDay(mkDay([mkHour(8, { windSpeedKn: 25 }), mkHour(9, { windSpeedKn: null, complete: false })])),
+      8,
+      2,
+    );
+    expect(realThenNull.factors[Factor.Wind].value).toBe(25);
+
+    const nullThenReal = scoreNamedWindow(
+      scoreDay(mkDay([mkHour(8, { windSpeedKn: null, complete: false }), mkHour(9, { windSpeedKn: 25 })])),
+      8,
+      2,
+    );
+    expect(nullThenReal.factors[Factor.Wind].value).toBe(25);
+  });
 });

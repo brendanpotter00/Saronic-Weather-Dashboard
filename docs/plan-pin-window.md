@@ -93,3 +93,15 @@ Fills the reserved slot: status strip + word, factor cells, day, range, a **days
   top with day, range, status word, factors, days-out; Unpin clears it.
 - Confirm the card re-scores on refetch (mock a forecast change in the scoring test).
 - `npm run lint` and `npm test` clean; mobile layout holds (tap-to-confirm works without hover).
+
+## Shipped changes (post-plan)
+
+Decided with Brendan during implementation; supersede the matching lines above:
+
+- **Pinned length is frozen, not derived.** A pin captures the demo length it was committed at
+  (`pinnedWindow: { date, startHour, lengthHours }`); changing the dashboard-wide demo length no
+  longer reshapes an already-pinned window — a scheduled window is its own independent window. The
+  confirm dialog's preview still uses the live demo length.
+- **No Edit button.** Re-pinning from the day detail replaces the pin; the card only offers Unpin.
+- **No days-out / T-minus line** on the card (and `daysUntil` was dropped as dead code).
+- The card eyebrow reads **"Pinned demo window."**
