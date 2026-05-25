@@ -96,8 +96,13 @@ export const forecastApi = createApi({
     getCombinedForecast: build.query<CombinedForecast, void>({
       keepUnusedDataFor: CACHE_TTL_SECONDS, // retain ~10 min after last subscriber unmounts
       async queryFn(_arg, _api, _extra, baseQuery) {
-        const simulated = simulatedForecastResult(); // DEV-only ?simulate= harness (no-op in prod)
-        if (simulated) return simulated;
+        // DEV-only ?simulate= harness. Gating each call site on import.meta.env.DEV (a static
+        // `false` in a production build) lets the whole simulate module dead-code-eliminate, so the
+        // harness never ships to production — not merely no-op at runtime.
+        if (import.meta.env.DEV) {
+          const simulated = simulatedForecastResult();
+          if (simulated) return simulated;
+        }
 
         const site = DEFAULT_SITE;
 
@@ -121,8 +126,9 @@ export const forecastApi = createApi({
 
         // Marine degrades gracefully: on a fetch error OR an unexpected body, fall
         // back to null waves so wind/precip/visibility still render.
+        const marineForcedDown = import.meta.env.DEV && simulateMarineDown();
         const marine =
-          simulateMarineDown() || marineRes.error || !isMarineResponse(marineRes.data)
+          marineForcedDown || marineRes.error || !isMarineResponse(marineRes.data)
             ? null
             : (marineRes.data as MarineResponse);
         const forecast = forecastRes.data as ForecastResponse;

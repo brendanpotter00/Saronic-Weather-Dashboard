@@ -31,7 +31,9 @@ import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
 
 export function Dashboard() {
-  maybeThrowForSimulation(); // DEV-only error-state harness: throws on ?simulate=throw (no-op in prod).
+  // DEV-only error-state harness: throws on ?simulate=throw. Gated on import.meta.env.DEV so it
+  // dead-code-eliminates in a production build (the simulate module never ships).
+  if (import.meta.env.DEV) maybeThrowForSimulation();
   // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
   // 6-hour demo) and echoes them back, which the control then seeds from. Dashboard-wide, lifted
   // out of any single day. Local view state with one owner (mirrors `selectedDate`, no Redux).

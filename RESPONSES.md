@@ -1,4 +1,3 @@
-Final Questions:
 1. Walk us through your decisions. What did you prioritize and why? What did you leave out? If Tara were sitting next to you, what
    would you ask her before building the next version?
 
