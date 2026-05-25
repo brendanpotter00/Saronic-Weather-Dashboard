@@ -54,9 +54,12 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 - **Scoring is memoised on the query `data` reference and the window knobs.** Expand/collapse and
   unrelated renders never re-score; only a refetch or a real window/demo-length change does.
 - **Selected day, window config, and the pin flow are local React state**, owned in `Dashboard`
-  (not Redux — all ephemeral view state with one owner). `selectedDate` and `windowConfig` are
+  (not Redux — view state with one owner). `selectedDate` and `windowConfig` are ephemeral
   `useState`; the pin flow (the pinned list + the single pending confirmation) lives in the
-  `usePinnedWindows` hook. `selectedDate` is the stable `date` string (defaults to day 0, today);
+  `usePinnedWindows` hook. **Pins persist** — the pinned list hydrates from `localStorage` on mount
+  and saves on every change (via `pinnedWindowsStorage.ts`, a versioned, error-safe key), so they
+  survive a reload; the pending pin is transient and not persisted. `selectedDate` is the stable
+  `date` string (defaults to day 0, today);
   `windowConfig` is `null` until Tara edits, so scoring falls back to the product defaults and
   *echoes* them back, and `DashboardConfigPanel` seeds itself from those echoes.
 
@@ -65,11 +68,13 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | File | Responsibility |
 | --- | --- |
 | `Dashboard.tsx` | Page shell + layout; owns `selectedDate` and `windowConfig`, calls `usePinnedWindows`; loading (Skeleton) / error (Alert) / empty states. Composes the sections. |
+| `ErrorBoundary.tsx` | Last-resort render-crash guard (a class component — only lifecycles catch render errors); shows a styled fallback + Reload instead of a blank page. Mounted in `src/App.tsx` wrapping the page; the `?simulate=throw` target. Fetch failures are handled in `Dashboard`, not here. |
 | `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast(data, windowConfig)`; the single data entry point. |
-| `hooks/usePinnedWindows.ts` | The pin flow as a hook: the pinned list + the single pending pin, with `requestPin` (freezes the demo length) / `confirmPin` / `cancelPin` / `unpin`. Wraps the pure ops in `pinnedWindows.ts`. |
+| `hooks/usePinnedWindows.ts` | The pin flow as a hook: the pinned list + the single pending pin, with `requestPin` (freezes the demo length) / `confirmPin` / `cancelPin` / `unpin`. Wraps the pure ops in `pinnedWindows.ts`; owns persistence — hydrates the list from `localStorage` on mount and saves on every change via `pinnedWindowsStorage.ts`. |
 | `hooks/useWindowPreview.ts` | The day-detail hover-to-preview / click-to-pin selection state; returns the per-row flags + handlers. Wraps `centeredWindowStart` / `scoreNamedWindow` (`scoring/window.ts`). |
 | `sections/PinnedWindowsSection.tsx` | The pinned-windows region: one `PinnedWindowSlot` per pinned window (re-scored via `scoreNamedWindow`) plus the `PinConfirmDialog`. Renders nothing until something is pinned or pending. |
 | `sections/ForecastSection.tsx` | The 10-day forecast region: marine-unavailable banner + `HorizonStrip` + `DayDetail`; resolves which day is expanded (selected date → first day). |
+| `components/MarineUnavailableAlert.tsx` | The fail-safe banner shown (by `ForecastSection`) when `marineAvailable === false`: without wave heights every hour is treated as no-go until the feed returns. |
 | `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day/hour labels: `formatHourLabel`, `formatClockTime`, `formatHourOfDay`). |
 | `components/StatusStrip.tsx` | The thin status-coloured bar that caps the day detail / pinned card / dialog (one owner of its height + colour). |
 | `components/StatusWord.tsx` | The big bold status word (GO/CAUTION/NO-GO); owns weight/line-height/colour, the caller passes the size. Shared by the day detail, pinned card, and dialog. |
@@ -80,6 +85,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | `components/StatusLegend.tsx` | The status key, riding the "10-Day Forecast" heading: each factor's thresholds tinted go/caution/no-go, every number derived from the same threshold constants the scoring uses. |
 | `components/PinnedWindowSlot.tsx` | One pinned demo window's card (status strip + word, range, worst-in-window factors, Unpin); `PinnedWindowsSection` renders one per pinned window. Renders null if its day has rolled off the horizon. |
 | `pinnedWindows.ts` | The pinned-windows collection: the `PinnedWindow`/`WindowSelection` types and the pure `addPinnedWindow` (dedupe-by-content, pin-order append) / `removePinnedWindow` / `pinnedWindowKey` ops, kept out of the component so the list logic is unit-testable. |
+| `pinnedWindowsStorage.ts` | Pin persistence: `loadPinnedWindows` / `savePinnedWindows` against a versioned `localStorage` key, error-safe (private-mode / quota failures and corrupt data degrade to an empty list, never throw). Used by `usePinnedWindows`. |
 | `components/PinConfirmDialog.tsx` | The commit step: shows the previewed window + rolled-up status + worst-in-window readings; Pin/Cancel. Click/tap → confirm (degrades to touch). |
 | `components/WindowFactorGrid.tsx` | The four worst-in-window readings as labelled, status-tinted cells; shared by the dialog and the pinned card so they can't drift. |
 | `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones); renders the inline `StatusLegend` on its heading row. |
@@ -89,7 +95,8 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. The pin-selection surface: hover/focus previews a centered window (tinted by its status, bracketed on first/last rows), click/tap/Enter commits. |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
-Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
+Theme/tokens live in `src/theme/` (`ThemeProvider.tsx` wraps the app in the MUI theme;
+`theme.ts` + `statusColor.ts` hold the tokens) — see `docs/UI-Style-Guide.md`.
 
 ## Key product decisions baked into the UI
 
