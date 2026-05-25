@@ -10,28 +10,28 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Alert from '@mui/material/Alert';
 import type { NamedWindowScore } from '../../scoring/window';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
 import { formatDayLabel, formatHourLabel } from '../format';
 import { WindowFactorGrid } from './WindowFactorGrid';
+import { StatusStrip } from './StatusStrip';
+import { StatusWord } from './StatusWord';
+import { IncompleteWindowAlert } from './IncompleteWindowAlert';
 
 interface PinConfirmDialogProps {
   open: boolean;
   date: string;
   score: NamedWindowScore;
-  demoWindowHours: number;
+  lengthHours: number; // the demo length being frozen into this pin (matches the previewed block)
   onConfirm: () => void;
   onClose: () => void;
 }
 
-export function PinConfirmDialog({ open, date, score, demoWindowHours, onConfirm, onClose }: PinConfirmDialogProps) {
+export function PinConfirmDialog({ open, date, score, lengthHours, onConfirm, onClose }: PinConfirmDialogProps) {
   const { weekday, month, dayNum } = formatDayLabel(date);
-  const statusColor = `${STATUS_TO_PALETTE[score.status]}.main`;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth aria-labelledby="pin-dialog-title">
-      <Box sx={{ height: 5, bgcolor: statusColor }} />
+      <StatusStrip status={score.status} />
       <DialogContent>
         <Stack spacing={2}>
           <Box>
@@ -42,22 +42,13 @@ export function PinConfirmDialog({ open, date, score, demoWindowHours, onConfirm
               {weekday}, {month} {dayNum}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {formatHourLabel(score.startTime)} – {formatHourLabel(score.endTime)} · {demoWindowHours}-hour demo
+              {formatHourLabel(score.startTime)} – {formatHourLabel(score.endTime)} · {lengthHours}-hour demo
             </Typography>
           </Box>
 
-          <Box
-            component="span"
-            sx={{ fontSize: '1.7rem', fontWeight: 900, lineHeight: 1, color: statusColor }}
-          >
-            {STATUS_LABEL[score.status]}
-          </Box>
+          <StatusWord status={score.status} component="span" sx={{ fontSize: '1.7rem' }} />
 
-          {!score.complete && (
-            <Alert severity="warning" variant="outlined">
-              Some hours in this window are missing readings, so it can't clear — shown as no-go.
-            </Alert>
-          )}
+          {!score.complete && <IncompleteWindowAlert />}
 
           <WindowFactorGrid factors={score.factors} />
         </Stack>

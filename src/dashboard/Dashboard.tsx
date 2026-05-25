@@ -1,8 +1,8 @@
-// The page. Owns the view state — the expanded day, the dashboard-wide window config, the pinned
-// windows, and the pending-pin dialog — and lays the dashboard out top-down: context (header) →
-// pinned windows → config panel → the 10-day line → the selected day's detail, with the pin
-// confirm dialog layered on top. Loading/error/empty are handled here so the children can assume a
-// present, non-empty ScoredForecast.
+// The page. Owns the dashboard-wide view state — the window/demo config knobs and which day is
+// expanded — calls the data and pin-flow hooks, and composes the sections top-down: header (with
+// the source blurb) → the pinned windows → the config bar → the 10-day forecast (its status key
+// rides the heading). Loading/error/empty are handled here so the sections can assume a present,
+// non-empty ScoredForecast.
 
 import { useEffect, useState } from 'react';
 import Container from '@mui/material/Container';
@@ -12,23 +12,14 @@ import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Button from '@mui/material/Button';
 import { useScoredForecast } from './hooks/useScoredForecast';
+import { usePinnedWindows } from './hooks/usePinnedWindows';
 import { FORECAST_ERROR_COPY } from './errorMessage';
 import { maybeThrowForSimulation } from '../forecast/simulate';
 import type { ScoringOptions } from '../scoring/scoring';
-import { scoreNamedWindow } from '../scoring/window';
 import { DashboardHeader } from './components/DashboardHeader';
-import { PinnedWindowSlot } from './components/PinnedWindowSlot';
-import { PinConfirmDialog } from './components/PinConfirmDialog';
-import {
-  type WindowSelection,
-  type PinnedWindow,
-  pinnedWindowKey,
-  addPinnedWindow,
-  removePinnedWindow,
-} from './pinnedWindows';
 import { DashboardConfigPanel } from './components/DashboardConfigPanel';
-import { HorizonStrip } from './components/HorizonStrip';
-import { DayDetail } from './components/DayDetail';
+import { PinnedWindowsSection } from './sections/PinnedWindowsSection';
+import { ForecastSection } from './sections/ForecastSection';
 
 export function Dashboard() {
   // DEV-only error-state harness: throws on ?simulate=throw. Gated on import.meta.env.DEV so it
@@ -39,14 +30,11 @@ export function Dashboard() {
   // out of any single day. Local view state with one owner (mirrors `selectedDate`, no Redux).
   const [windowConfig, setWindowConfig] = useState<ScoringOptions | null>(null);
   const { scored, isLoading, isFetching, isError, errorKind, refetch } = useScoredForecast(windowConfig ?? undefined);
-  // null = "no explicit choice yet" → fall back to the first day (today). Keyed by the stable
-  // date string, not an index, so it survives a refetch that reorders/replaces the array.
+  // null = "no explicit choice yet" → ForecastSection falls back to the first day (today). Keyed
+  // by the stable date string, not an index, so it survives a refetch that reorders/replaces the array.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  // The windows Tara has pinned to the top (in pin order), and the one currently open in the
-  // confirm dialog (a single pending pin). Both ephemeral view state with one owner, like
-  // selectedDate — persistence is out of scope (picture it DB-saved).
-  const [pinnedWindows, setPinnedWindows] = useState<PinnedWindow[]>([]);
-  const [dialogWindow, setDialogWindow] = useState<WindowSelection | null>(null);
+  // The pinned windows and the single pending pin, with their add/confirm/cancel/unpin transitions.
+  const pins = usePinnedWindows();
 
   // A valid 200 that scores to zero days means the daylight filter or the day-join dropped
   // everything — almost certainly an upstream/scoring bug, not normal operation. The UI shows a
@@ -109,17 +97,7 @@ export function Dashboard() {
     );
   }
 
-  const selected = scored.days.find((day) => day.date === selectedDate) ?? scored.days[0];
   const candidateCount = scored.days.filter((day) => day.isCandidate).length;
-
-  // Re-derive scores from the live forecast on every render — the pinned cards and the dialog stay
-  // dumb, and a refetch makes the status "firm up" with no card-level logic. A window whose day has
-  // rolled off the 10-day horizon scores null and that slot/the dialog simply hide. The dialog
-  // previews at the LIVE demo length; each pinned card scores at its own frozen length (in the map).
-  const findDay = (date: string) => scored.days.find((day) => day.date === date);
-  const dialogDay = dialogWindow && findDay(dialogWindow.date);
-  const dialogScore =
-    dialogWindow && dialogDay ? scoreNamedWindow(dialogDay, dialogWindow.startHour, scored.demoWindowHours) : null;
 
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
@@ -129,19 +107,14 @@ export function Dashboard() {
           marineSite={scored.marineSite}
           marineAvailable={scored.marineAvailable}
         />
-        {pinnedWindows.map((window) => {
-          const day = findDay(window.date);
-          const score = day ? scoreNamedWindow(day, window.startHour, window.lengthHours) : null;
-          return (
-            <PinnedWindowSlot
-              key={pinnedWindowKey(window)}
-              date={window.date}
-              score={score}
-              lengthHours={window.lengthHours}
-              onUnpin={() => setPinnedWindows((prev) => removePinnedWindow(prev, window))}
-            />
-          );
-        })}
+        <PinnedWindowsSection
+          days={scored.days}
+          pinnedWindows={pins.pinnedWindows}
+          pendingPin={pins.pendingPin}
+          onConfirmPin={pins.confirmPin}
+          onCancelPin={pins.cancelPin}
+          onUnpin={pins.unpin}
+        />
         <DashboardConfigPanel
           availableWindow={scored.availableWindow}
           daylightBounds={scored.daylightBounds}
@@ -151,33 +124,15 @@ export function Dashboard() {
           totalDays={scored.days.length}
           onChange={setWindowConfig}
         />
-        {!scored.marineAvailable && (
-          <Alert severity="warning">
-            Marine (wave) data is unavailable — every hour is treated as no-go until it returns.
-          </Alert>
-        )}
-        <HorizonStrip days={scored.days} selectedDate={selected.date} onSelect={setSelectedDate} />
-        <DayDetail
-          day={selected}
+        <ForecastSection
+          days={scored.days}
+          marineAvailable={scored.marineAvailable}
           demoWindowHours={scored.demoWindowHours}
-          onRequestPin={(date, startHour) => setDialogWindow({ date, startHour })}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          onRequestPin={pins.requestPin}
         />
       </Stack>
-      {dialogWindow && dialogScore && (
-        <PinConfirmDialog
-          open
-          date={dialogWindow.date}
-          score={dialogScore}
-          demoWindowHours={scored.demoWindowHours}
-          onConfirm={() => {
-            // Freeze the current demo length into the pin so it stays independent of later config.
-            const pinned = { ...dialogWindow, lengthHours: scored.demoWindowHours };
-            setPinnedWindows((prev) => addPinnedWindow(prev, pinned));
-            setDialogWindow(null);
-          }}
-          onClose={() => setDialogWindow(null)}
-        />
-      )}
     </Container>
   );
 }

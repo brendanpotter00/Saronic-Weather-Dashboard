@@ -7,7 +7,8 @@
 // length are the same window. That single fact drives everything here — it's the dedupe rule, the
 // React key, and the unpin target — so no generated IDs or extra state are needed.
 
-// A previewed pick from the hourly table, scored at the LIVE dashboard demo length.
+// The coordinates of a pick from the hourly table — the day and the block's start clock-hour.
+// PinnedWindow extends it with the frozen demo length.
 export interface WindowSelection {
   date: string;
   startHour: number;

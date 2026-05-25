@@ -16,20 +16,19 @@ pass via `useScoredForecast`.
 
 Layout is **top-down**: context → config → overview → detail.
 
-1. **Header** — title only (named after the site).
+1. **Header** — the site-named title, with the data-source attribution (resolved forecast + marine
+   grid cells) tucked top-right.
 2. **Pinned windows** — the demo windows Tara has pinned, one card each, stacked in pin order;
    empty (no cards, no layout gap) until she pins one.
 3. **Window controls** — the dashboard-wide config bar: the **available window** (the clock-hour
    band a demo may run in) and the **demo length**, plus the exact daylight envelope and a live
    "N of 10 days have a valid window" count. Set once at the top; applies to every day.
 4. **Horizon line** — the centerpiece: a row of color-coded day "cards", each a contiguous line
-   of that day's daylight hours coloured by hour status, with out-of-window hours dimmed. This is
-   how Tara picks a day.
+   of that day's daylight hours coloured by hour status, with out-of-window hours dimmed. The
+   status legend/key rides this section's "10-Day Forecast" heading row. This is how Tara picks a day.
 5. **Day detail** — opens **inline below the line** for the selected day: the day's badge as a
    big word, a plain-language summary, then every daylight hour with its four factor readings
    (out-of-window rows dimmed).
-6. **Footer** — the status legend/key and data-source attribution (resolved forecast + marine
-   grid cells).
 
 ## Data flow
 
@@ -41,45 +40,52 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
         │  → ScoredForecast { site, marineSite, timezone, marineAvailable,
         │       demoWindowHours, availableWindow, daylightBounds, daylightEnvelope, days: ScoredDay[] }
         ▼
-<Dashboard>          owns selectedDate + windowConfig + pinnedWindows + dialogWindow  (src/dashboard/Dashboard.tsx)
-        ├─ <DashboardHeader>  (title only)
-        ├─ pinnedWindows.map → <PinnedWindowSlot> (one card per pinned window — scoreNamedWindow re-scores each render)
+<Dashboard>          owns selectedDate + windowConfig; usePinnedWindows() for the pin flow  (src/dashboard/Dashboard.tsx)
+        ├─ <DashboardHeader>  (site-named title + <Attribution> source blurb, top-right)
+        ├─ <PinnedWindowsSection>   (cards + confirm dialog; re-scores each render via scoreNamedWindow)
+        │       ├─ <PinnedWindowSlot>  (one per pinned window; null if its day rolled off)
+        │       └─ <PinConfirmDialog>  (a pending pin, length frozen at requestPin; Pin → confirmPin commits it) → <WindowFactorGrid>
         ├─ <DashboardConfigPanel>   (available window + demo length → setWindowConfig)
-        ├─ marine-unavailable <Alert> (when !marineAvailable)
-        ├─ <HorizonStrip>     → <DayColumn> → <HourLine>   (click → setSelectedDate; out-of-window hours dimmed)
-        ├─ <DayDetail>        → <HourRow> → <FactorCell>   (hover/focus previews a centered window; click → onRequestPin)
-        ├─ <DashboardFooter>  → <StatusLegend> + <Attribution>
-        └─ <PinConfirmDialog> (a pending pin; Pin → addPinnedWindow, freezing the demo length) → <WindowFactorGrid>
+        └─ <ForecastSection>        (marine-unavailable Alert + horizon + detail; resolves the selected day)
+                ├─ <HorizonStrip>   → <StatusLegend> (inline key) + <DayColumn> → <HourLine>   (click → onSelectDate; out-of-window hours dimmed)
+                └─ <DayDetail>      → <HourRow> → <FactorCell>   (useWindowPreview: hover previews a centered window; click → onRequestPin)
 ```
 
 - **Scoring is memoised on the query `data` reference and the window knobs.** Expand/collapse and
   unrelated renders never re-score; only a refetch or a real window/demo-length change does.
-- **Selected day and window config are local `useState`**, owned in `Dashboard` (not Redux — both
-  are ephemeral view state with one owner). `selectedDate` is the stable `date` string (defaults
-  to day 0, today); `windowConfig` is `null` until Tara edits, so scoring falls back to the
-  product defaults and *echoes* them back, and `DashboardConfigPanel` seeds itself from those echoes.
+- **Selected day, window config, and the pin flow are local React state**, owned in `Dashboard`
+  (not Redux — all ephemeral view state with one owner). `selectedDate` and `windowConfig` are
+  `useState`; the pin flow (the pinned list + the single pending confirmation) lives in the
+  `usePinnedWindows` hook. `selectedDate` is the stable `date` string (defaults to day 0, today);
+  `windowConfig` is `null` until Tara edits, so scoring falls back to the product defaults and
+  *echoes* them back, and `DashboardConfigPanel` seeds itself from those echoes.
 
-## Component map (`src/dashboard/`, organized by kind: shell + `format.ts` at root, `hooks/`, `components/`)
+## Component map (`src/dashboard/`, organized by kind: shell + `format.ts` at root, `hooks/`, `sections/`, `components/`)
 
 | File | Responsibility |
 | --- | --- |
-| `Dashboard.tsx` | Page shell + layout; owns `selectedDate` and `windowConfig`; loading (Skeleton) / error (Alert) / empty states. |
+| `Dashboard.tsx` | Page shell + layout; owns `selectedDate` and `windowConfig`, calls `usePinnedWindows`; loading (Skeleton) / error (Alert) / empty states. Composes the sections. |
 | `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast(data, windowConfig)`; the single data entry point. |
+| `hooks/usePinnedWindows.ts` | The pin flow as a hook: the pinned list + the single pending pin, with `requestPin` (freezes the demo length) / `confirmPin` / `cancelPin` / `unpin`. Wraps the pure ops in `pinnedWindows.ts`. |
+| `hooks/useWindowPreview.ts` | The day-detail hover-to-preview / click-to-pin selection state; returns the per-row flags + handlers. Wraps `centeredWindowStart` / `scoreNamedWindow` (`scoring/window.ts`). |
+| `sections/PinnedWindowsSection.tsx` | The pinned-windows region: one `PinnedWindowSlot` per pinned window (re-scored via `scoreNamedWindow`) plus the `PinConfirmDialog`. Renders nothing until something is pinned or pending. |
+| `sections/ForecastSection.tsx` | The 10-day forecast region: marine-unavailable banner + `HorizonStrip` + `DayDetail`; resolves which day is expanded (selected date → first day). |
 | `format.ts` | The **only** UI-side display formatting (units, "none", "—", clock/day/hour labels: `formatHourLabel`, `formatClockTime`, `formatHourOfDay`). |
-| `components/StatusBadge.tsx` | The go/caution/no-go pill used in the legend (label + colour from the status map). |
-| `components/DashboardHeader.tsx` | Title (site-named) only. |
+| `components/StatusStrip.tsx` | The thin status-coloured bar that caps the day detail / pinned card / dialog (one owner of its height + colour). |
+| `components/StatusWord.tsx` | The big bold status word (GO/CAUTION/NO-GO); owns weight/line-height/colour, the caller passes the size. Shared by the day detail, pinned card, and dialog. |
+| `components/IncompleteWindowAlert.tsx` | The shared "this window has missing readings → shown as no-go" warning (pinned card + confirm dialog). |
+| `components/DashboardHeader.tsx` | The top context band: site-named title on the left, the source blurb (`Attribution`) tucked top-right. |
 | `components/DashboardConfigPanel.tsx` | The dashboard-wide config bar: available-window + demo-length pickers (clamped to `daylightBounds`), the exact daylight envelope line, and the live candidate count. Reports edits up via `onChange`; holds no state. |
-| `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
-| `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
-| `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
-| `components/PinnedWindowSlot.tsx` | One pinned demo window's card (status strip + word, range, worst-in-window factors, Unpin); `Dashboard` renders one per pinned window. Renders null if its day has rolled off the horizon. |
+| `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. Rendered top-right in `DashboardHeader`. |
+| `components/StatusLegend.tsx` | The status key, riding the "10-Day Forecast" heading: each factor's thresholds tinted go/caution/no-go, every number derived from the same threshold constants the scoring uses. |
+| `components/PinnedWindowSlot.tsx` | One pinned demo window's card (status strip + word, range, worst-in-window factors, Unpin); `PinnedWindowsSection` renders one per pinned window. Renders null if its day has rolled off the horizon. |
 | `pinnedWindows.ts` | The pinned-windows collection: the `PinnedWindow`/`WindowSelection` types and the pure `addPinnedWindow` (dedupe-by-content, pin-order append) / `removePinnedWindow` / `pinnedWindowKey` ops, kept out of the component so the list logic is unit-testable. |
 | `components/PinConfirmDialog.tsx` | The commit step: shows the previewed window + rolled-up status + worst-in-window readings; Pin/Cancel. Click/tap → confirm (degrades to touch). |
 | `components/WindowFactorGrid.tsx` | The four worst-in-window readings as labelled, status-tinted cells; shared by the dialog and the pinned card so they can't drift. |
-| `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones). |
+| `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones); renders the inline `StatusLegend` on its heading row. |
 | `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
 | `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status; out-of-window hours dimmed (reads `hour.isInWindow`). |
-| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. Owns `hoverStart` and the pin-selection wiring; a click bubbles `onRequestPin(date, startHour)` up to the dashboard. |
+| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. Binds to `useWindowPreview` for the hover/click pin selection; a click bubbles `onRequestPin(date, startHour, lengthHours)` up through `ForecastSection` (the live demo length rides along to freeze into the pin). |
 | `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. The pin-selection surface: hover/focus previews a centered window (tinted by its status, bracketed on first/last rows), click/tap/Enter commits. |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
@@ -144,15 +150,16 @@ These are intentionally **not built**, but the structure is ready so each is add
 
 2. ~~**Pin a chosen window to the top.**~~ **Built.** The interaction is **centered hover** in the
    hourly table — point at the middle of a stretch, the fixed-length block centers + tints by
-   status, click/tap → `PinConfirmDialog` → pin. `Dashboard` owns `pinnedWindows`
-   (`PinnedWindow[]`, each `{ date, startHour, lengthHours }`) and `dialogWindow` (`{ date, startHour }`)
-   and re-derives every score from the live forecast each render, so the pinned cards firm up on every
-   refetch with no card-level logic. **Multiple** windows can be pinned — each confirm appends a card
+   status, click/tap → `PinConfirmDialog` → pin. The `usePinnedWindows` hook owns `pinnedWindows`
+   (`PinnedWindow[]`, each `{ date, startHour, lengthHours }`) and the pending pin (also a
+   `PinnedWindow` — `{ date, startHour, lengthHours }`, length already frozen);
+   `PinnedWindowsSection` re-derives every score from the live forecast each render, so the pinned cards
+   firm up on every refetch with no card-level logic. **Multiple** windows can be pinned — each confirm appends a card
    (pin order), a window's content is its identity (`pinnedWindowKey`) so re-pinning an identical one
    is a no-op and each card's Unpin targets only itself, and the collection ops live in
-   `src/dashboard/pinnedWindows.ts`. A pin **freezes** the demo length it was committed at
+   `src/dashboard/pinnedWindows.ts`. A pin **freezes** the live demo length at request time
    (`lengthHours`), so it is its own independent scheduled window — later changes to the
-   dashboard-wide demo length don't reshape it; the dialog preview, by contrast, uses the live demo length.
+   dashboard-wide demo length don't reshape it, and the dialog previews that same frozen length.
    New scoring surface in `src/scoring/window.ts`: `centeredWindowStart` (the only selection math —
    center, lean-later, clamp at dawn/dusk) and `scoreNamedWindow` (rolls a named block up to one
    status + worst-in-window readings, fail-safe no-go when it can't be fully evaluated). Each
