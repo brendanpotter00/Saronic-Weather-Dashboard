@@ -12,7 +12,7 @@ import { useScoredForecast } from './hooks/useScoredForecast';
 import type { ScoringOptions } from '../scoring/scoring';
 import { DashboardHeader } from './components/DashboardHeader';
 import { PinnedWindowSlot } from './components/PinnedWindowSlot';
-import { WindowControls } from './components/WindowControls';
+import { DashboardConfigPanel } from './components/DashboardConfigPanel';
 import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
@@ -65,7 +65,7 @@ export function Dashboard() {
       <Stack spacing={{ xs: 2, md: 3 }}>
         <DashboardHeader />
         <PinnedWindowSlot />
-        <WindowControls
+        <DashboardConfigPanel
           availableWindow={scored.availableWindow}
           daylightBounds={scored.daylightBounds}
           daylightEnvelope={scored.daylightEnvelope}

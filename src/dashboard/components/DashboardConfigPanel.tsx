@@ -21,7 +21,7 @@ import { DEMO_MIN_HOURS, DEMO_MAX_HOURS } from '../../config/app';
 import type { AvailableWindow, DaylightEnvelope } from '../../scoring/window';
 import { formatClockTime, formatHourOfDay, MISSING_DISPLAY } from '../format';
 
-export interface WindowControlsProps {
+export interface DashboardConfigPanelProps {
   availableWindow: AvailableWindow; // current effective window (echoed from scoring)
   daylightBounds: AvailableWindow; // hard min/max the pickers clamp to (widest daylight coverage)
   daylightEnvelope: DaylightEnvelope; // precise earliest sunrise / latest sunset, for the context line
@@ -34,7 +34,7 @@ export interface WindowControlsProps {
 const range = (lo: number, hi: number): number[] =>
   Array.from({ length: Math.max(0, hi - lo + 1) }, (_, i) => lo + i);
 
-export function WindowControls({
+export function DashboardConfigPanel({
   availableWindow,
   daylightBounds,
   daylightEnvelope,
@@ -42,7 +42,7 @@ export function WindowControls({
   candidateCount,
   totalDays,
   onChange,
-}: WindowControlsProps) {
+}: DashboardConfigPanelProps) {
   const { startHour, endHour } = availableWindow;
   // Start can't reach the end (need ≥1 hour); end can't reach the start. Both stay inside the
   // daylight envelope, so the window never extends past sunrise/sunset.
@@ -64,7 +64,7 @@ export function WindowControls({
   const countSentence = `${candidateCount} of ${totalDays} days have a valid window with these settings`;
 
   return (
-    <Card component="section" aria-label="Demo window settings">
+    <Card component="section" aria-label="Dashboard configuration">
       <CardContent>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 2, md: 4 }} useFlexGap sx={{ alignItems: { md: 'flex-start' } }}>
           <Box>
