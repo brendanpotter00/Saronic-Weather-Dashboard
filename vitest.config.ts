@@ -20,6 +20,7 @@ export default mergeConfig(
         include: ['src/**/*.{ts,tsx}'],
         exclude: [
           'src/main.tsx', // ReactDOM bootstrap; nothing to unit-test
+          'src/responses/main.tsx', // ReactDOM bootstrap for the /responses page
           'src/**/*.d.ts',
           'src/model.ts', // type-only domain model, emits no runtime JS
           'src/forecast/responseTypes.ts', // type-only raw API shapes

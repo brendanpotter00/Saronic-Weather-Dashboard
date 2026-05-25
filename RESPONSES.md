@@ -111,6 +111,10 @@ I started implementing from the data upwards with a core principle of keeping th
 
 ## 2. How would you evolve this tool? Tara wants to add the other demo sites (Panama City, Norfolk, San Diego). The boat captains want a mobile version. PMs want to pull in historical weather patterns so Tara can push back on leadership scheduling demos during storm season. How do you prioritize? What would you build next?
 
+I prioritize work based on the amount of effort it will take, when it is needed by, and whether it aligns with the north star of the application.
+
+- In this context, the north star might change based on Tara's answers. So currently, I am prioritizing against the current north star: the 10-second decision.
+
 I would prioritize the mentioned features in this order:
 
 1. **Multiple cities**
@@ -118,6 +122,7 @@ I would prioritize the mentioned features in this order:
     - I would add a dropdown in one of the corners that configures the dashboard to that location.
 2. **Historical data**
     - This requires backend infra, but would be fundamental to other features.
+    - This is fundamental to improving the quality of the system, like adding recommended windows based on past data, introducing our own weather system to infer missing data, and alerts.
 3. **Mobile version**
     - If a mobile version is referring to a mobile native application, then I would deprioritize it, because my web application is already mobile compatible and a native application offers little to the core functionality.
 

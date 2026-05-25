@@ -60,9 +60,11 @@ src/
   forecast/    Open-Meteo data layer: fetch, normalize, join (RTK Query)
   scoring/     Thresholds → per-hour/window/day status; window + pin math
   dashboard/   MUI UI: page shell, sections, components, hooks, display formatting
+  responses/   Standalone /responses page that renders RESPONSES.md (themed)
   theme/       MUI theme + style/status-color tokens
 docs/          Challenge brief, API contract, UI architecture & style guide, notes
-RESPONSES.md   Written challenge responses
+index.html     Dashboard entry; responses.html is the /responses entry (Vite multi-page)
+RESPONSES.md   Written challenge responses (also rendered at /responses)
 ```
 
 The guiding convention: **data is shaped at the lowest level so the UI stays dumb** —
@@ -88,4 +90,9 @@ timestamps, joined records). Details in `docs/UI-Architecture.md` and `CLAUDE.md
 
 ## Written responses
 
-The challenge's two written responses live in **`RESPONSES.md`**.
+The challenge's two written responses live in **`RESPONSES.md`** and are also served as a
+themed page at **`/responses`** (e.g. http://localhost:5173/responses with `npm run dev`).
+That page reads `RESPONSES.md` directly, so editing the markdown updates the page with no
+code change. It's a separate Vite build entry (`responses.html`); the clean `/responses`
+URL is handled by `vercel.json` (`cleanUrls`) in production and a small dev/preview
+middleware in `vite.config.ts` locally.
