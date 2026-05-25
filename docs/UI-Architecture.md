@@ -44,7 +44,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
         ├─ <DashboardHeader>  (site-named title + <Attribution> source blurb, top-right)
         ├─ <PinnedWindowsSection>   (cards + confirm dialog; re-scores each render via scoreNamedWindow)
         │       ├─ <PinnedWindowSlot>  (one per pinned window; null if its day rolled off)
-        │       └─ <PinConfirmDialog>  (a pending pin; Pin → confirmPin freezes the demo length) → <WindowFactorGrid>
+        │       └─ <PinConfirmDialog>  (a pending pin, length frozen at requestPin; Pin → confirmPin commits it) → <WindowFactorGrid>
         ├─ <DashboardConfigPanel>   (available window + demo length → setWindowConfig)
         └─ <ForecastSection>        (marine-unavailable Alert + horizon + detail; resolves the selected day)
                 ├─ <HorizonStrip>   → <StatusLegend> (inline key) + <DayColumn> → <HourLine>   (click → onSelectDate; out-of-window hours dimmed)
@@ -66,7 +66,7 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | --- | --- |
 | `Dashboard.tsx` | Page shell + layout; owns `selectedDate` and `windowConfig`, calls `usePinnedWindows`; loading (Skeleton) / error (Alert) / empty states. Composes the sections. |
 | `hooks/useScoredForecast.ts` | Query → memoised `scoreForecast(data, windowConfig)`; the single data entry point. |
-| `hooks/usePinnedWindows.ts` | The pin flow as a hook: the pinned list + the single pending pin, with `requestPin` / `confirmPin` (freezes the demo length) / `cancelPin` / `unpin`. Wraps the pure ops in `pinnedWindows.ts`. |
+| `hooks/usePinnedWindows.ts` | The pin flow as a hook: the pinned list + the single pending pin, with `requestPin` (freezes the demo length) / `confirmPin` / `cancelPin` / `unpin`. Wraps the pure ops in `pinnedWindows.ts`. |
 | `hooks/useWindowPreview.ts` | The day-detail hover-to-preview / click-to-pin selection state; returns the per-row flags + handlers. Wraps `centeredWindowStart` / `scoreNamedWindow` (`scoring/window.ts`). |
 | `sections/PinnedWindowsSection.tsx` | The pinned-windows region: one `PinnedWindowSlot` per pinned window (re-scored via `scoreNamedWindow`) plus the `PinConfirmDialog`. Renders nothing until something is pinned or pending. |
 | `sections/ForecastSection.tsx` | The 10-day forecast region: marine-unavailable banner + `HorizonStrip` + `DayDetail`; resolves which day is expanded (selected date → first day). |
@@ -151,14 +151,15 @@ These are intentionally **not built**, but the structure is ready so each is add
 2. ~~**Pin a chosen window to the top.**~~ **Built.** The interaction is **centered hover** in the
    hourly table — point at the middle of a stretch, the fixed-length block centers + tints by
    status, click/tap → `PinConfirmDialog` → pin. The `usePinnedWindows` hook owns `pinnedWindows`
-   (`PinnedWindow[]`, each `{ date, startHour, lengthHours }`) and the pending pin (`{ date, startHour }`);
+   (`PinnedWindow[]`, each `{ date, startHour, lengthHours }`) and the pending pin (also a
+   `PinnedWindow` — `{ date, startHour, lengthHours }`, length already frozen);
    `PinnedWindowsSection` re-derives every score from the live forecast each render, so the pinned cards
    firm up on every refetch with no card-level logic. **Multiple** windows can be pinned — each confirm appends a card
    (pin order), a window's content is its identity (`pinnedWindowKey`) so re-pinning an identical one
    is a no-op and each card's Unpin targets only itself, and the collection ops live in
-   `src/dashboard/pinnedWindows.ts`. A pin **freezes** the demo length it was committed at
+   `src/dashboard/pinnedWindows.ts`. A pin **freezes** the live demo length at request time
    (`lengthHours`), so it is its own independent scheduled window — later changes to the
-   dashboard-wide demo length don't reshape it; the dialog preview, by contrast, uses the live demo length.
+   dashboard-wide demo length don't reshape it, and the dialog previews that same frozen length.
    New scoring surface in `src/scoring/window.ts`: `centeredWindowStart` (the only selection math —
    center, lean-later, clamp at dawn/dusk) and `scoreNamedWindow` (rolls a named block up to one
    status + worst-in-window readings, fail-safe no-go when it can't be fully evaluated). Each

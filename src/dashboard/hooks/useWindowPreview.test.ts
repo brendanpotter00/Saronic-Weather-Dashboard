@@ -25,6 +25,17 @@ describe('useWindowPreview', () => {
     expect(result.current.windowFits).toBe(false);
   });
 
+  it('stays inert for a day with no daylight hours (no bounds to seat a window)', () => {
+    const onCommit = vi.fn();
+    const emptyDay = scoredDay('2026-05-24', { hours: [] });
+    const { result } = renderHook(() => useWindowPreview(emptyDay, 6, onCommit));
+    expect(result.current.windowFits).toBe(false);
+    act(() => result.current.previewHour(8));
+    expect(result.current.selectionStatus).toBeNull();
+    act(() => result.current.selectHour(8));
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('previewHour centers a clamped block on the hovered hour and flags its rows', () => {
     const { result } = renderHook(() => useWindowPreview(day, 6, vi.fn()));
     expect(result.current.selectionStatus).toBeNull();
