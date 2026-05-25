@@ -15,7 +15,6 @@ import { PinnedWindowSlot } from './components/PinnedWindowSlot';
 import { WindowControls } from './components/WindowControls';
 import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
-import { DashboardFooter } from './components/DashboardFooter';
 
 export function Dashboard() {
   // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
@@ -63,7 +62,11 @@ export function Dashboard() {
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
       <Stack spacing={{ xs: 2, md: 3 }}>
-        <DashboardHeader />
+        <DashboardHeader
+          site={scored.site}
+          marineSite={scored.marineSite}
+          marineAvailable={scored.marineAvailable}
+        />
         <PinnedWindowSlot />
         <WindowControls
           availableWindow={scored.availableWindow}
@@ -81,11 +84,6 @@ export function Dashboard() {
         )}
         <HorizonStrip days={scored.days} selectedDate={selected.date} onSelect={setSelectedDate} />
         <DayDetail day={selected} />
-        <DashboardFooter
-          site={scored.site}
-          marineSite={scored.marineSite}
-          marineAvailable={scored.marineAvailable}
-        />
       </Stack>
     </Container>
   );

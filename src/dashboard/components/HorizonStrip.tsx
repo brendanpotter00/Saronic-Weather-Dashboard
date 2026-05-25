@@ -8,6 +8,7 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import type { ScoredDay } from '../../scoring/scoring';
 import { DayColumn } from './DayColumn';
+import { StatusLegend } from './StatusLegend';
 
 interface HorizonStripProps {
   days: ScoredDay[];
@@ -18,9 +19,24 @@ interface HorizonStripProps {
 export function HorizonStrip({ days, selectedDate, onSelect }: HorizonStripProps) {
   return (
     <Box component="section">
-      <Typography variant="overline" color="text.secondary" component="h2" sx={{ display: 'block', mb: 1 }}>
-        10-Day Forecast
-      </Typography>
+      {/* Heading on the left, the status key riding the same row on the right; on a narrow screen
+          the key wraps to its own line beneath the heading. */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          flexWrap: 'wrap',
+          columnGap: 2,
+          rowGap: 1,
+          mb: 1,
+        }}
+      >
+        <Typography variant="overline" color="text.secondary" component="h2">
+          10-Day Forecast
+        </Typography>
+        <StatusLegend />
+      </Box>
       <Card>
         <CardContent sx={{ '&:last-child': { pb: 2 } }}>
           <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, overflowX: 'auto' }}>
