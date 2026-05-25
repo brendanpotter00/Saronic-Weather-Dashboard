@@ -1,9 +1,9 @@
-// The reserved layout seam at the top of the dashboard, now filled by the "pin a chosen window"
-// feature. Empty (renders null) until Tara pins one — so there's no layout shift — then it shows
-// her pinned demo window: status strip + word, day, range, and the four worst-in-window readings,
-// plus a top-corner ✕ to unpin. It is pure presentation: the dashboard re-derives the score from
-// the live forecast on every render (scoreNamedWindow), so the status firms up here with no
-// card-level logic.
+// One pinned demo window, shown at the top of the dashboard — the dashboard renders one of these
+// per pin, in pin order. Pure presentation: it re-derives nothing, just displays the
+// NamedWindowScore the dashboard recomputed from the live forecast this render (scoreNamedWindow),
+// so the status firms up here with no card-level logic. Shows the status strip + word, day, range,
+// and the four worst-in-window readings, plus a top-corner ✕ to unpin. Hides itself (renders null)
+// when its day has rolled off the 10-day horizon, leaving no score to show.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -21,14 +21,14 @@ import { formatDayLabel, formatHourLabel } from '../format';
 import { WindowFactorGrid } from './WindowFactorGrid';
 
 interface PinnedWindowSlotProps {
-  date: string | null; // null = nothing pinned → the slot stays empty
-  score: NamedWindowScore | null;
+  date: string; // the pinned day's calendar key — always present (the dashboard renders one card per pin)
+  score: NamedWindowScore | null; // null = its day rolled off the 10-day horizon → the card hides itself
   lengthHours: number; // the demo length frozen at pin time (independent of the live config)
   onUnpin: () => void;
 }
 
 export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWindowSlotProps) {
-  if (date === null || score === null) return null;
+  if (score === null) return null;
 
   const { weekday, month, dayNum } = formatDayLabel(date);
   const statusColor = `${STATUS_TO_PALETTE[score.status]}.main`;
