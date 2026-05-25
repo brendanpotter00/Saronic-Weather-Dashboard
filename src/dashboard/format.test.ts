@@ -51,6 +51,7 @@ describe('date & time formatting (offset-aware, no UTC drift)', () => {
     expect(formatHourLabel('2026-05-23T00:00:00-05:00')).toBe('12 AM');
     expect(formatHourLabel('2026-05-23T12:00:00-05:00')).toBe('12 PM');
     expect(formatHourLabel('2026-05-23T19:00:00-05:00')).toBe('7 PM');
+    expect(formatHourLabel('')).toBe(MISSING_DISPLAY); // unevaluable window → dash, not a fabricated "12 AM"
   });
 
   it('formatClockTime keeps minutes for sunrise/sunset', () => {

@@ -69,23 +69,21 @@ describe('centeredWindowStart — center the fixed-length block on the hovered h
 });
 
 describe('scoreNamedWindow — roll a concrete block up to one status + worst-in-window readings', () => {
-  it('an all-clear block is GO with no limiting factors and the right ISO span', () => {
+  it('an all-clear block is GO with the right ISO span', () => {
     const day = scoreDay(mkDay(goHours(7, 8)));
     const score = scoreNamedWindow(day, 8, 6); // block 8..13
     expect(score.status).toBe(Status.Go);
     expect(score.complete).toBe(true);
-    expect(score.limitingFactors).toEqual([]);
     expect(score.startTime).toBe(iso(8));
     expect(score.endTime).toBe(iso(13));
   });
 
-  it("takes the block's worst hour (one caution hour -> caution), naming the limiting factor", () => {
+  it("takes the block's worst hour (one caution hour -> caution)", () => {
     const hours = goHours(7, 8);
     hours[3] = mkHour(10, { windSpeedKn: 16 }); // caution, inside an 8..13 block
     const day = scoreDay(mkDay(hours));
     const score = scoreNamedWindow(day, 8, 6);
     expect(score.status).toBe(Status.Caution);
-    expect(score.limitingFactors).toEqual([Factor.Wind]);
   });
 
   it('a no-go hour anywhere in the block kills it', () => {
@@ -94,7 +92,6 @@ describe('scoreNamedWindow — roll a concrete block up to one status + worst-in
     const day = scoreDay(mkDay(hours));
     const score = scoreNamedWindow(day, 8, 6);
     expect(score.status).toBe(Status.NoGo);
-    expect(score.limitingFactors).toContain(Factor.Wave);
   });
 
   it('reports the worst VALUE per factor, not just the worst tier (peak wind, lowest visibility)', () => {

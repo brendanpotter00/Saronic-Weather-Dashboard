@@ -44,8 +44,10 @@ function meridiem(hour: number): { h12: number; ap: 'AM' | 'PM' } {
   return { h12, ap };
 }
 
-// "6 AM", "7 PM" — compact, for the hourly rows.
+// "6 AM", "7 PM" — compact, for the hourly rows. An empty ISO (an unevaluable window's blank
+// start/end time) degrades to the missing dash rather than fabricating "12 AM" from Number('').
 export function formatHourLabel(iso: string): string {
+  if (!iso) return MISSING_DISPLAY;
   const { h12, ap } = meridiem(clockParts(iso).hour);
   return `${h12} ${ap}`;
 }

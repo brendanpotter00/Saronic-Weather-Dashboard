@@ -7,7 +7,7 @@
 
 import type { DayForecast } from '../model';
 import { Factor, Status } from './status';
-import { type Tier, STATUS_TO_TIER, TIER_TO_STATUS, TIER_GO, TIER_NOGO, worstTier } from './tiers';
+import { type Tier, STATUS_TO_TIER, TIER_TO_STATUS, TIER_NOGO, worstTier } from './tiers';
 import type { ScoredDay, ScoredFactor, ScoredHour } from './scoring';
 
 // Inclusive clock-hour bounds in the site's local time, e.g. { startHour: 6, endHour: 20 } is
@@ -121,7 +121,6 @@ export interface NamedWindowScore {
   endTime: string; // ISO 8601 with site offset — last hour of the block (for display)
   status: Status; // worst hour in the block; forced no-go when the block can't be fully evaluated
   factors: Record<Factor, ScoredFactor>; // worst-in-window reading per factor
-  limitingFactors: Factor[]; // factor(s) sitting at the rolled-up status ([] when GO)
   complete: boolean; // false → missing hours/readings, so `status` is a fail-safe no-go
 }
 
@@ -187,8 +186,6 @@ export function scoreNamedWindow(day: ScoredDay, startHour: number, lengthHours:
     endTime: block[block.length - 1]?.time ?? '',
     status: TIER_TO_STATUS[windowTier],
     factors,
-    limitingFactors:
-      windowTier === TIER_GO ? [] : FACTORS.filter((factor) => STATUS_TO_TIER[factors[factor].status] === windowTier),
     complete,
   };
 }
