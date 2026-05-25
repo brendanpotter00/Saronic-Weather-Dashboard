@@ -3,9 +3,14 @@
 // cancel, plus unpin). Lifted out of Dashboard.tsx so the page stays a thin composer and this
 // state machine is unit-testable on its own. The pure list ops live in pinnedWindows.ts; this hook
 // only owns the React state and wires the dialog step to them.
+//
+// Pins persist across reloads (pinnedWindowsStorage.ts): the list hydrates from localStorage on
+// mount and saves on every change. Only the committed list persists — the pending pin is transient
+// dialog state and is intentionally left out.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type PinnedWindow, addPinnedWindow, removePinnedWindow } from '../pinnedWindows';
+import { loadPinnedWindows, savePinnedWindows } from '../pinnedWindowsStorage';
 
 export interface UsePinnedWindows {
   pinnedWindows: PinnedWindow[]; // pinned windows in pin order
@@ -17,8 +22,12 @@ export interface UsePinnedWindows {
 }
 
 export function usePinnedWindows(): UsePinnedWindows {
-  const [pinnedWindows, setPinnedWindows] = useState<PinnedWindow[]>([]);
+  // Hydrate once from a prior session; the lazy initializer reads localStorage only on first render.
+  const [pinnedWindows, setPinnedWindows] = useState<PinnedWindow[]>(loadPinnedWindows);
   const [pendingPin, setPendingPin] = useState<PinnedWindow | null>(null);
+
+  // Mirror every change back to localStorage so the next reload restores the same list.
+  useEffect(() => savePinnedWindows(pinnedWindows), [pinnedWindows]);
 
   return {
     pinnedWindows,
