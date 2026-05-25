@@ -59,7 +59,7 @@ src/
   config/      Domain config (site coords) + app config (forecast days, cache TTL)
   forecast/    Open-Meteo data layer: fetch, normalize, join (RTK Query)
   scoring/     Thresholds → per-hour/window/day status; window + pin math
-  dashboard/   MUI UI: page shell, components, hooks, display formatting
+  dashboard/   MUI UI: page shell, sections, components, hooks, display formatting
   theme/       MUI theme + style/status-color tokens
 docs/          Challenge brief, API contract, UI architecture & style guide, notes
 RESPONSES.md   Written challenge responses

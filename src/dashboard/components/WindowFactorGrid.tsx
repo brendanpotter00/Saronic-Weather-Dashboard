@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { Status, Factor } from '../../scoring/status';
 import type { ScoredFactor } from '../../scoring/scoring';
-import { STATUS_TO_PALETTE } from '../../theme/statusColor';
+import { statusMainColor } from '../../theme/statusColor';
 import { formatFactorValue, FACTOR_LABEL } from '../format';
 
 const ORDER: Factor[] = [Factor.Wind, Factor.Wave, Factor.Precipitation, Factor.Visibility];
@@ -17,7 +17,7 @@ export function WindowFactorGrid({ factors }: { factors: Record<Factor, ScoredFa
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
       {ORDER.map((factor) => {
         const scored = factors[factor];
-        const color = scored.status === Status.Go ? 'text.primary' : `${STATUS_TO_PALETTE[scored.status]}.main`;
+        const color = scored.status === Status.Go ? 'text.primary' : statusMainColor(scored.status);
         return (
           <Box key={factor} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, px: 1, py: 0.75 }}>
             <Typography variant="overline" color="text.secondary" component="div" sx={{ lineHeight: 1.4 }}>

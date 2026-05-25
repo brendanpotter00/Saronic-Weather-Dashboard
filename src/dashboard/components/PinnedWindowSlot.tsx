@@ -12,13 +12,32 @@ import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import Alert from '@mui/material/Alert';
+import { styled } from '@mui/material/styles';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import type { NamedWindowScore } from '../../scoring/window';
-import { STATUS_TO_PALETTE, STATUS_LABEL } from '../../theme/statusColor';
 import { formatDayLabel, formatHourLabel } from '../format';
 import { WindowFactorGrid } from './WindowFactorGrid';
+import { StatusStrip } from './StatusStrip';
+import { StatusWord } from './StatusWord';
+import { IncompleteWindowAlert } from './IncompleteWindowAlert';
+
+// Unpinning is a reversible view action, so the ✕ rests muted grey and only warms toward the
+// no-go red on hover/focus — a clear "remove" cue without a shouting-red resting state. The
+// negative margins pull its padding into the corner so the ✕ optically aligns to the card edge
+// and the eyebrow line. Tokens only, no raw hex.
+const UnpinButton = styled(IconButton)(({ theme }) => ({
+  marginTop: theme.spacing(-0.5),
+  marginRight: theme.spacing(-0.5),
+  color: theme.palette.text.secondary,
+  transition: theme.transitions.create(['color', 'background-color'], {
+    duration: theme.transitions.duration.shorter,
+  }),
+  '&:hover, &:focus-visible': {
+    color: theme.palette.error.main,
+    backgroundColor: theme.palette.action.hover,
+  },
+}));
 
 interface PinnedWindowSlotProps {
   date: string | null; // null = nothing pinned → the slot stays empty
@@ -31,12 +50,11 @@ export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWi
   if (date === null || score === null) return null;
 
   const { weekday, month, dayNum } = formatDayLabel(date);
-  const statusColor = `${STATUS_TO_PALETTE[score.status]}.main`;
 
   return (
     <Box component="section" aria-label={`Pinned demo window: ${weekday}, ${month} ${dayNum}`}>
       <Card>
-        <Box sx={{ height: 5, bgcolor: statusColor }} />
+        <StatusStrip status={score.status} />
         <CardContent>
           <Stack spacing={2}>
             {/* Header: eyebrow + the corner unpin control on one line, then day/range + status
@@ -60,31 +78,9 @@ export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWi
                   Pinned demo window
                 </Typography>
                 <Tooltip title="Unpin">
-                  <IconButton
-                    size="small"
-                    aria-label="Unpin"
-                    onClick={onUnpin}
-                    sx={{
-                      // Pull the button's padding into the corner so the ✕ optically aligns to
-                      // the card edge and the eyebrow line.
-                      mt: -0.5,
-                      mr: -0.5,
-                      // Unpinning is a reversible view action, so the ✕ rests muted grey and only
-                      // warms toward the no-go red on hover/focus — a clear "remove" cue without a
-                      // shouting-red resting state. Tokens only, no raw hex.
-                      color: 'text.secondary',
-                      transition: (theme) =>
-                        theme.transitions.create(['color', 'background-color'], {
-                          duration: theme.transitions.duration.shorter,
-                        }),
-                      '&:hover, &:focus-visible': {
-                        color: 'error.main',
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                  >
+                  <UnpinButton size="small" aria-label="Unpin" onClick={onUnpin}>
                     <CloseIcon fontSize="small" />
-                  </IconButton>
+                  </UnpinButton>
                 </Tooltip>
               </Box>
 
@@ -104,26 +100,14 @@ export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWi
                     {formatHourLabel(score.startTime)} – {formatHourLabel(score.endTime)} · {lengthHours}-hour demo
                   </Typography>
                 </Box>
-                <Box
-                  component="div"
-                  sx={{
-                    fontSize: { xs: '2rem', sm: '2.6rem' },
-                    fontWeight: 900,
-                    lineHeight: 1,
-                    color: statusColor,
-                    textAlign: { xs: 'left', sm: 'right' },
-                  }}
-                >
-                  {STATUS_LABEL[score.status]}
-                </Box>
+                <StatusWord
+                  status={score.status}
+                  sx={{ fontSize: { xs: '2rem', sm: '2.6rem' }, textAlign: { xs: 'left', sm: 'right' } }}
+                />
               </Box>
             </Box>
 
-            {!score.complete && (
-              <Alert severity="warning" variant="outlined">
-                Some hours in this window are missing readings, so it can't clear — shown as no-go.
-              </Alert>
-            )}
+            {!score.complete && <IncompleteWindowAlert />}
 
             <WindowFactorGrid factors={score.factors} />
           </Stack>

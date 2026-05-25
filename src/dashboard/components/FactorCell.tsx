@@ -5,11 +5,11 @@
 import Typography from '@mui/material/Typography';
 import { Status, Factor } from '../../scoring/status';
 import type { ScoredFactor } from '../../scoring/scoring';
-import { STATUS_TO_PALETTE } from '../../theme/statusColor';
+import { statusMainColor } from '../../theme/statusColor';
 import { formatFactorValue } from '../format';
 
 export function FactorCell({ factor, scored }: { factor: Factor; scored: ScoredFactor }) {
-  const color = scored.status === Status.Go ? 'text.primary' : `${STATUS_TO_PALETTE[scored.status]}.main`;
+  const color = scored.status === Status.Go ? 'text.primary' : statusMainColor(scored.status);
   return (
     <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 700, color }}>
       {formatFactorValue(factor, scored.value)}

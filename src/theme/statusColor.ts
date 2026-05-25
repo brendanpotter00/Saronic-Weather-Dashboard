@@ -22,3 +22,11 @@ export const STATUS_LABEL: Record<Status, string> = {
   [Status.Caution]: 'CAUTION',
   [Status.NoGo]: 'NO-GO',
 };
+
+// The MUI sx colour token for a status's solid fill — `success.main` / `warning.main` /
+// `error.main`. The status strip, the big status word, the day-detail badge, and the factor cells
+// all paint with this, so the one `${...}.main` idiom lives here next to the map it reads instead
+// of being restated at each call site.
+export function statusMainColor(status: Status): string {
+  return `${STATUS_TO_PALETTE[status]}.main`;
+}
