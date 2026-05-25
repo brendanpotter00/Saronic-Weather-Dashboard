@@ -71,3 +71,30 @@ describe('savePinnedWindows — write failures never throw', () => {
     expect(() => savePinnedWindows([win('2026-05-24', 8, 6)])).not.toThrow();
   });
 });
+
+describe('loadPinnedWindows — dev diagnostics', () => {
+  // Vitest runs with import.meta.env.DEV truthy, so the warn paths are live here.
+  it('warns when stored data is corrupt (unparseable or wrong shape) but still returns []', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    localStorage.setItem(STORAGE_KEY, '{ not json');
+    expect(loadPinnedWindows()).toEqual([]);
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ not: 'an array' }));
+    expect(loadPinnedWindows()).toEqual([]);
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([win('2026-05-24', 8, 6), { bogus: true }]));
+    expect(loadPinnedWindows()).toEqual([win('2026-05-24', 8, 6)]);
+
+    expect(warn).toHaveBeenCalledTimes(3);
+  });
+
+  it('stays silent when storage is simply unavailable (expected, not corrupt)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage disabled');
+    });
+    expect(loadPinnedWindows()).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});

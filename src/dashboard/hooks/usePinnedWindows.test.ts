@@ -94,4 +94,14 @@ describe('usePinnedWindows', () => {
     const next = renderHook(() => usePinnedWindows());
     expect(next.result.current.pinnedWindows).toEqual([]);
   });
+
+  it('does not persist a requested-but-unconfirmed pin (pending dialog state stays transient)', () => {
+    const first = renderHook(() => usePinnedWindows());
+    act(() => first.result.current.requestPin('2026-05-24', 8, 6));
+    // Storage holds only the committed list ([]), never the pending pin.
+    expect(JSON.parse(localStorage.getItem('saronic.pinnedWindows.v1') ?? '[]')).toEqual([]);
+
+    const next = renderHook(() => usePinnedWindows());
+    expect(next.result.current.pinnedWindows).toEqual([]);
+  });
 });
