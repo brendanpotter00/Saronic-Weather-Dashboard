@@ -208,7 +208,7 @@ describe('pin a demo window', () => {
     mockUseQuery.mockReturnValue({ data, isLoading: false, error: undefined });
     renderApp();
 
-    expect(screen.getByText(/daylight is shorter than the 6-hour demo length/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/daylight is shorter than the 6-hour demo length/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 6 AM/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

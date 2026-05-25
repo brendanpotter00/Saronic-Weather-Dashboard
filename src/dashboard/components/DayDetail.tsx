@@ -93,11 +93,18 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
                   Daylight hours
                 </Typography>
                 <Tooltip title={pinHint}>
-                  <InfoOutlinedIcon
+                  {/* A focusable span carries the accessible name (the icon itself stays
+                      aria-hidden) so the hint reaches keyboard and screen-reader users, not just
+                      mouse hover. */}
+                  <Box
+                    component="span"
+                    role="img"
                     aria-label={pinHint}
                     tabIndex={0}
-                    sx={{ fontSize: '1rem', color: 'text.secondary', cursor: 'help' }}
-                  />
+                    sx={{ display: 'inline-flex', color: 'text.secondary', cursor: 'help' }}
+                  >
+                    <InfoOutlinedIcon sx={{ fontSize: '1rem' }} />
+                  </Box>
                 </Tooltip>
               </Box>
               {/* Column header, aligned to the hour rows via the shared grid template. */}
