@@ -1,6 +1,5 @@
-// The thin status-coloured bar that caps a card or dialog (the day detail, a pinned window, the
-// pin-confirm dialog all wear one). A single component owns its height and colour so the three
-// callers can't drift apart. Pure presentation: it paints the Status it's handed.
+// The thin status-coloured bar that caps a card or dialog. One component owns its height and colour
+// so the callers can't drift.
 
 import Box from '@mui/material/Box';
 import type { Status } from '../../scoring/status';

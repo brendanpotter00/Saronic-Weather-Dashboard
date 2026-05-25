@@ -1,6 +1,5 @@
-// kind → user-facing copy. Display vocabulary, like format.ts: the data layer (errorKind.ts)
-// reduces a failure to a finite kind; here we say it in words Tara can act on. Every kind also
-// offers a Retry (wired in Dashboard); the detail tells her whether retrying is likely to help.
+// kind → user-facing copy: errorKind.ts reduces a failure to a finite kind, and this says it in
+// words the operator can act on. Every kind offers a Retry; the detail says whether it's likely to help.
 
 import type { ForecastErrorKind } from '../forecast/errorKind';
 

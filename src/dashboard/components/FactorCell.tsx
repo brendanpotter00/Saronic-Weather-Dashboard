@@ -1,6 +1,5 @@
-// One factor's reading in the hourly table. Shows the formatted value and tints it by the
-// factor's own status: a clear factor stays neutral ink (so a good row isn't a wall of green),
-// while a caution/no-go factor is coloured to draw the eye to what's limiting the hour.
+// One factor's reading. Tints by the factor's status: a clear factor stays neutral ink (so a good
+// row isn't a wall of green); caution/no-go is coloured to draw the eye to what's limiting the hour.
 
 import Typography from '@mui/material/Typography';
 import { Status, Factor } from '../../scoring/status';

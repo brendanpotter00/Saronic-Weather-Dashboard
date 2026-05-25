@@ -1,12 +1,6 @@
-// The drill-down that opens below the line for the selected day. Leads with the day's badge as
-// a big word (the answer), flags missing data, then lays out every daylight hour so Tara can
-// see exactly where conditions turn.
-//
-// It's also where a demo window gets PICKED: hovering/focusing an hour previews a fixed-length
-// block centered on it, tinted by the block's rolled-up status. Hover is desktop-only sugar —
-// committing is always a click/tap that bubbles a request up to the dashboard, which owns the
-// confirm dialog and the pinned slot. The selection math lives in useWindowPreview; this component
-// is the markup that binds to it.
+// The drill-down for the selected day: leads with the badge as a big word, flags missing data, then
+// lays out every daylight hour. Also where a demo window gets PICKED — hover previews a block,
+// click/tap bubbles a request up to the dashboard. The selection math lives in useWindowPreview.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -32,8 +26,7 @@ const SUMMARY: Record<Status, string> = {
   [Status.NoGo]: 'No demo window stays clear of the no-go thresholds this day.',
 };
 
-// Column header aligned to the hour rows via the shared grid template, including HourRow's 2px
-// side-border reserve so the header columns can't drift out of alignment with the rows.
+// Column header aligned to the rows via the shared grid template + HourRow's 2px side-border reserve.
 const HourGridHeader = styled(Box)(({ theme }) => ({
   display: 'grid',
   gridTemplateColumns: HOUR_GRID,
@@ -57,8 +50,7 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
     onRequestPin(day.date, startHour, demoWindowHours),
   );
 
-  // The how-to hint when a window fits, or why one doesn't — surfaced from the daylight-hours info
-  // icon so the header stays uncluttered.
+  // The how-to hint when a window fits, or why one doesn't.
   const pinHint = preview.windowFits
     ? `Point at the middle of your demo — the ${demoWindowHours}-hour block centers there; click to pin.`
     : `Daylight is shorter than the ${demoWindowHours}-hour demo length, so no window fits.`;
@@ -91,9 +83,8 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
                   Daylight hours
                 </Typography>
                 <Tooltip title={pinHint}>
-                  {/* A focusable span carries the accessible name (the icon itself stays
-                      aria-hidden) so the hint reaches keyboard and screen-reader users, not just
-                      mouse hover. */}
+                  {/* Focusable span carries the accessible name so the hint reaches keyboard and
+                      screen-reader users, not just hover. */}
                   <Box
                     component="span"
                     role="img"
@@ -113,7 +104,7 @@ export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps
                 <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Rain</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Visibility</Typography>
               </HourGridHeader>
-              {/* Clearing on leave so the preview follows the cursor and vanishes when it exits. */}
+              {/* Clear on leave so the preview vanishes when the cursor exits. */}
               <Box onMouseLeave={preview.clearPreview}>
                 {day.hours.map((hour) => (
                   <HourRow

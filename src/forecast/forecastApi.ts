@@ -43,19 +43,11 @@ function marineUrl(site: Site): string {
   return `${MARINE_BASE_URL}?${params.toString()}`;
 }
 
-// Open-Meteo can answer HTTP 200 with a body that isn't the forecast we expect
-// (an error-as-200, a partial response). fetchBaseQuery only flags non-2xx, so we
-// guard the shape before the `as` cast — otherwise buildCombinedForecast dereferences
-// `.hourly`/`.daily` and the whole query throws instead of erroring/degrading cleanly.
-// The guard must cover EVERY field the consumer touches, not just `time`: a body with
-// `hourly.time` present but `is_day`/`sunrise`/etc. absent would still pass a `time`-only
-// check and then throw on `hourly.is_day[i]` / `daily.sunrise[i]` deep inside buildCombinedForecast.
-// `timezone` is included because buildCombinedForecast feeds it into Intl.DateTimeFormat
-// to resolve each hour's UTC offset: a missing/empty zone would throw a RangeError (or,
-// if merely absent, silently default to the browser zone -> wrong offsets on every hour)
-// instead of the clean CUSTOM_ERROR this guard exists to produce. `latitude`/`longitude`
-// are checked too: buildCombinedForecast emits them as `site`, and a missing one would
-// silently surface as `site: { latitude: undefined }` in the footer rather than this error.
+// Open-Meteo can answer HTTP 200 with a body that isn't the forecast we expect, and fetchBaseQuery
+// only flags non-2xx — so guard the shape before the `as` cast, or buildCombinedForecast throws on
+// a deep deref instead of erroring cleanly. The guard must cover EVERY field the consumer touches
+// (not just `time`): a missing `is_day`/`sunrise`/timezone/lat/lon would each pass a `time`-only
+// check and then throw (or silently produce wrong offsets) deeper in buildCombinedForecast.
 function isForecastResponse(data: unknown): data is ForecastResponse {
   const d = data as ForecastResponse | null;
   return (
@@ -76,8 +68,7 @@ function isForecastResponse(data: unknown): data is ForecastResponse {
   );
 }
 
-// buildCombinedForecast indexes hourly.time + hourly.wave_height and reads latitude/longitude
-// for `marineSite`, so those are the complete set of fields the consumer touches.
+// The complete set of fields buildCombinedForecast touches on a marine response.
 function isMarineResponse(data: unknown): data is MarineResponse {
   const d = data as MarineResponse | null;
   return (
@@ -91,24 +82,20 @@ function isMarineResponse(data: unknown): data is MarineResponse {
 
 export const forecastApi = createApi({
   reducerPath: 'forecastApi',
-  // Placeholder baseUrl: the queryFn passes absolute URLs on two different
-  // hosts, which override this. We keep fetchBaseQuery for its normalized error
-  // shape and to reuse RTK's fetch handling.
+  // Placeholder baseUrl: queryFn passes absolute URLs on two hosts that override this. We keep
+  // fetchBaseQuery for its normalized error shape.
   baseQuery: fetchBaseQuery({ baseUrl: '/' }),
-  // On (re)mount, refetch only if the cached data is older than the TTL. Within the
-  // window, serve the in-memory cache and don't re-hit the rate-limited free tier.
+  // On (re)mount, refetch only if cached data is older than the TTL; otherwise serve the in-memory
+  // cache and don't re-hit the rate-limited free tier.
   refetchOnMountOrArgChange: CACHE_TTL_SECONDS,
   endpoints: (build) => ({
-    // One endpoint fires BOTH upstream fetches in parallel and joins them, so
-    // the UI gets a single model, a single loading/error state, and one cache.
-    // No-arg: there's a single fixed site (multi-city is out of scope), so the
-    // endpoint reads DEFAULT_SITE directly and the cache needs no custom key.
+    // One endpoint fires both upstream fetches in parallel and joins them, so the UI gets a single
+    // model, loading/error state, and cache. No-arg: a single fixed site, read from DEFAULT_SITE.
     getCombinedForecast: build.query<CombinedForecast, void>({
       keepUnusedDataFor: CACHE_TTL_SECONDS, // retain ~10 min after last subscriber unmounts
       async queryFn(_arg, _api, _extra, baseQuery) {
-        // DEV-only ?simulate= harness. Gating each call site on import.meta.env.DEV (a static
-        // `false` in a production build) lets the whole simulate module dead-code-eliminate, so the
-        // harness never ships to production — not merely no-op at runtime.
+        // DEV-only ?simulate= harness, gated on import.meta.env.DEV so the whole module dead-code-
+        // eliminates from a production build (not merely no-ops at runtime).
         if (import.meta.env.DEV) {
           const simulated = simulatedForecastResult();
           if (simulated) return simulated;
@@ -134,8 +121,8 @@ export const forecastApi = createApi({
           };
         }
 
-        // Marine degrades gracefully: on a fetch error OR an unexpected body, fall
-        // back to null waves so wind/precip/visibility still render.
+        // Marine degrades gracefully: on a fetch error OR an unexpected body, fall back to null
+        // waves so wind/precip/visibility still render.
         const marineForcedDown = import.meta.env.DEV && simulateMarineDown();
         const marine =
           marineForcedDown || marineRes.error || !isMarineResponse(marineRes.data)
@@ -143,17 +130,14 @@ export const forecastApi = createApi({
             : (marineRes.data as MarineResponse);
         const forecast = forecastRes.data as ForecastResponse;
 
-        // Defense-in-depth: any unexpected shape that slips past the structural guard
-        // above (e.g. an invalid-but-nonempty timezone string like "Not/AZone" that
-        // throws a RangeError inside Intl.DateTimeFormat) must degrade to a clean error,
-        // not an uncaught throw — RTK Query's queryFn contract is to return
-        // {data}|{error}, never throw (a throw rejects the query promise).
+        // Defense-in-depth: any unexpected shape past the structural guard (e.g. an invalid-but-
+        // nonempty timezone that throws inside Intl.DateTimeFormat) must degrade to a clean error —
+        // RTK Query's queryFn must return {data}|{error}, never throw.
         try {
           return { data: buildCombinedForecast(forecast, marine) };
         } catch (err) {
-          // Reaching here means something genuinely unanticipated threw past the structural
-          // guard (e.g. a RangeError from an invalid-but-nonempty timezone) — exactly the case
-          // you'd want the stack for. Log it before collapsing to the clean badData error.
+          // Genuinely unanticipated throw past the guard — log it (you'd want the stack) before
+          // collapsing to the clean error.
           console.error('Failed to build forecast from response:', err);
           return {
             error: {

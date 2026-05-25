@@ -2,10 +2,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { forecastApi } from '../forecast/forecastApi';
 
-// RTK Query owns the cache: in-memory, keyed per endpoint, with the ~10-min TTL
-// configured in forecastApi.ts (refetchOnMountOrArgChange + keepUnusedDataFor). The
-// cache lives for the session and resets on a full reload — fine for a single morning
-// user well under Open-Meteo's rate limit.
+// RTK Query owns the cache (in-memory, ~10-min TTL configured in forecastApi.ts); it resets on a
+// full reload.
 export const store = configureStore({
   reducer: {
     [forecastApi.reducerPath]: forecastApi.reducer,
@@ -13,7 +11,6 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(forecastApi.middleware),
 });
 
-// Enables refetchOnFocus / refetchOnReconnect if we turn them on later.
 setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;

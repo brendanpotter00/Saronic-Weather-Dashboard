@@ -1,13 +1,6 @@
-// The status key, now riding the "10-Day Forecast" heading row instead of a footer drawer. A
-// compact, flowing inline reference: each factor names itself once (matching the hourly-table
-// headers — Wind Speed / Wave Height / Rain / Visibility) and shows its thresholds tinted
-// go/caution/no-go, so the colour AND the number are both learnable in a single glance. Every
-// number is derived from the SAME threshold constants the scoring uses, so the key can never
-// quietly disagree with how the colours were actually assigned.
-//
-// Note the deliberate divergence from FactorCell: there a GO reading is neutral ink (so a good
-// row isn't a wall of green); here the GO value IS green, because the key is the one place that
-// *defines* what the colours mean.
+// The status key. Each factor's thresholds, tinted go/caution/no-go, derived from the SAME
+// threshold constants scoring uses — so the key can't disagree with the colours. Unlike FactorCell
+// (where a GO reading is neutral ink), here the GO value IS green: the key defines the colours.
 
 import { Fragment } from 'react';
 import Box from '@mui/material/Box';
@@ -28,8 +21,7 @@ interface KeySegment {
   text: string;
   status: Status;
 }
-// A factor's band: its label (matching the hourly-table headers), its unit, and its segments in
-// good → no-go order. Rain is binary — it simply omits the caution segment.
+// A factor's band: label, unit, and segments in good → no-go order. Rain is binary (no caution).
 interface KeyFactor {
   label: string;
   unit: string;
@@ -58,9 +50,8 @@ const FACTORS: KeyFactor[] = [
   {
     label: 'Visibility',
     unit: 'mi',
-    // Inverted vs. wind/wave: more miles is better, so GO is the HIGH end (≥ the go ideal) and
-    // NO-GO is the LOW end (< the floor). The caution band stops JUST BELOW the go ideal ("3–<10",
-    // not "3–10") so 10 mi isn't tinted as both caution and go — mirroring the scoring's boundary.
+    // Inverted vs wind/wave: GO is the HIGH end. The caution band stops JUST BELOW the go ideal
+    // ("3–<10", not "3–10") so 10 mi isn't tinted as both — mirroring the scoring boundary.
     segments: [
       { text: `≥${VISIBILITY_GO_MILES}`, status: Status.Go },
       { text: `${VISIBILITY_NOGO_MILES}–<${VISIBILITY_GO_MILES}`, status: Status.Caution },
@@ -77,8 +68,7 @@ const FACTORS: KeyFactor[] = [
   },
 ];
 
-// The colour guide: the three status words, tinted. It's the explicit colour→meaning anchor, and
-// it keeps the key readable without colour (the words + the good→no-go ordering carry it).
+// The colour→meaning anchor: the three status words, tinted. Keeps the key readable without colour.
 const GUIDE: Status[] = [Status.Go, Status.Caution, Status.NoGo];
 
 // A "/"-joined run of tinted threshold values; muted slashes separate them.
@@ -100,14 +90,12 @@ function tintedRun(segments: { text: string; status: Status }[]) {
 export function StatusLegend() {
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 2, rowGap: 0.5 }}>
-      {/* Colour anchor leads, so the eye learns the go/caution/no-go mapping before reading the
-          per-factor thresholds tinted by it. */}
+      {/* Colour anchor leads, so the mapping is learned before the per-factor thresholds. */}
       <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
         {tintedRun(GUIDE.map((status) => ({ text: STATUS_LABEL[status], status })))}
       </Typography>
       {FACTORS.map((factor) => (
-        // whiteSpace:nowrap keeps a factor whole — the flex row wraps factor-by-factor, never
-        // mid-threshold.
+        // nowrap keeps a factor whole — the row wraps factor-by-factor, never mid-threshold.
         <Typography key={factor.label} variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
           {factor.label}{' '}
           {tintedRun(factor.segments)}

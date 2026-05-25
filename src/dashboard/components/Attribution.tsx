@@ -1,8 +1,6 @@
-// Says plainly WHERE the weather comes from and FOR WHERE — so Tara trusts the numbers. Lives
-// top-right of the header as a compact two-row label/value grid: "Source" / "Gulfport, MS" label
-// the rows on the left, the provider and the resolved coordinates sit in the column to their
-// right. Surfaces both grid cells because the marine model snaps to the nearest ocean cell, so
-// its lat/lon differs from the forecast cell — expected, not a bug, and more honest shown.
+// Says plainly WHERE the weather comes from and FOR WHERE. Surfaces both grid cells because the
+// marine model snaps to the nearest ocean cell, so its lat/lon differs from the forecast cell —
+// expected, not a bug.
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -23,8 +21,7 @@ interface AttributionProps {
 export function Attribution({ site, marineSite, marineAvailable }: AttributionProps) {
   const marine = marineAvailable && marineSite ? `Marine ${coords(marineSite)}` : 'Marine data unavailable';
   return (
-    // inline-grid so the block shrinks to its content and rides the right edge of the header;
-    // labels in the left column, values in the right — two lines instead of four.
+    // inline-grid so the block shrinks to its content; labels left, values right.
     <Box
       sx={{
         display: 'inline-grid',

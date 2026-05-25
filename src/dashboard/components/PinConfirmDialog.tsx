@@ -1,7 +1,6 @@
-// The "pin this demo window" confirm step. Hover only previews; committing is always an explicit
-// click/tap → this dialog → Pin, so the interaction degrades cleanly to touch (no hover needed).
-// It shows the exact window, its rolled-up status word, the four worst-in-window readings, and —
-// when the block can't be fully evaluated — the same fail-safe warning the day detail uses.
+// The "pin this demo window" confirm step — the explicit commit (hover only previews), so the
+// interaction degrades cleanly to touch. Shows the window, its status, the four readings, and a
+// fail-safe warning when the block can't be fully evaluated.
 
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';

@@ -77,10 +77,10 @@ describe('clampWindow — confine a stored window to the daylight bounds before 
   });
 
   it('falls back to the full bounds when a stale window sits entirely outside them', () => {
-    // A window Tara picked can outlive its data: a refetch rolls the 10-day horizon forward so the
-    // earliest/latest daylight HOUR shifts, leaving her stored window past the new bounds. Clamping
-    // there would invert the window (start >= end); we hand back the full bounds — a valid, non-empty
-    // range — instead of an empty window that would flip every day to no-go after an innocuous refetch.
+    // A window the operator picked can outlive its data: a refetch rolls the horizon forward so the
+    // daylight HOUR span shifts, leaving the stored window past the new bounds. Clamping there would
+    // invert the window (start >= end); we hand back the full bounds — a valid, non-empty range —
+    // instead of an empty window that would flip every day to no-go after an innocuous refetch.
     expect(clampWindow({ startHour: 18, endHour: 22 }, { startHour: 6, endHour: 12 })).toEqual({
       startHour: 6,
       endHour: 12,

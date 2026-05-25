@@ -1,8 +1,6 @@
-// The pinned-windows region at the top of the dashboard: the stack of demo windows Tara has
-// pinned, plus the confirm dialog that commits a new one. It re-derives each card's score (and the
-// pending pin's) from the live forecast on every render via scoreNamedWindow, so the cards and
-// dialog stay dumb and "firm up" as the forecast refetches — no card-level logic. Renders nothing
-// when nothing is pinned and no pin is pending, so the top of the page has no layout shift.
+// The pinned-windows region: the stack of pinned demo windows plus the confirm dialog for a new
+// one. Re-derives each card's score from the live forecast every render (scoreNamedWindow), so the
+// cards stay dumb and firm up on refetch. Renders nothing when empty.
 
 import type { ScoredDay } from '../../scoring/scoring';
 import { scoreNamedWindow } from '../../scoring/window';

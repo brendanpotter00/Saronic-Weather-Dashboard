@@ -1,7 +1,5 @@
-// One day in the horizon line: a tappable column showing the weekday + date (the date number
-// tinted by the day's best-achievable badge) above that day's HourLine. Clicking it opens the
-// detail below. It's a real <button> (ButtonBase) so keyboard + screen-reader users get the
-// same affordance.
+// One day in the horizon line: a tappable column with the weekday + date (tinted by the day's
+// badge) above that day's HourLine. A real <button> (ButtonBase) for keyboard/screen-reader users.
 
 import ButtonBase from '@mui/material/ButtonBase';
 import Box from '@mui/material/Box';
@@ -13,9 +11,8 @@ import { STATUS_TO_PALETTE, STATUS_LABEL, type StatusPaletteKey } from '../../th
 import { HourLine } from './HourLine';
 import { formatDayLabel } from '../format';
 
-// A candidate day wears a soft status-tinted band so the valid set reads as a group. The fill is
-// faint (resting) and deepens on hover; both stay below the date-number tint so the strip never
-// becomes a wall of colour.
+// A candidate day wears a soft status-tinted band so the valid set reads as a group (faint at rest,
+// deeper on hover) — kept below the date-number tint so the strip isn't a wall of colour.
 const BAND_ALPHA = 0.1;
 const BAND_HOVER_ALPHA = 0.16;
 const COLUMN_WIDTH_XS_PX = 56; // fixed column width when the horizon scrolls on phones
@@ -26,9 +23,8 @@ interface DayCellProps {
   selected: boolean; // owns the black selection RING (boxShadow); composes with the tint
 }
 
-// Candidacy lives on the COLOUR channel; selection is the black ring. They compose: a selected
-// candidate keeps its tint AND gains the ring, so "valid" survives selection. A selected
-// non-candidate falls back to the neutral grey so it still reads as the focused day.
+// Candidacy is the COLOUR channel; selection is the black ring. They compose: a selected candidate
+// keeps its tint and gains the ring; a selected non-candidate falls back to neutral grey.
 const DayCell = styled(ButtonBase, {
   shouldForwardProp: (prop) => !['paletteKey', 'candidate', 'selected'].includes(prop as string),
 })<DayCellProps>(({ theme, paletteKey, candidate, selected }) => {

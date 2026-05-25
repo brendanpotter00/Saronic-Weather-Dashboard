@@ -1,13 +1,10 @@
-// The single global style source of truth. Every spacing value, font size, radius, and
-// component default lives here so the rest of the UI pulls tokens instead of hardcoding —
-// other agents reach for `theme.spacing(n)`, `variant="h2"`, `color="success"` and never
-// invent a magic px or hex. The palette is the brief's "black & white + status colours":
-// a light, near-monochrome base with the go/caution/no-go intents carried by MUI's
-// success/warning/error (see statusColor.ts for the domain→palette mapping).
+// The single global style source of truth — pull tokens from here instead of hardcoding px/hex.
+// Palette: a near-monochrome base with go/caution/no-go carried by MUI's success/warning/error
+// (see statusColor.ts for the domain→palette mapping).
 
 import { createTheme } from '@mui/material/styles';
 
-// --- Brand tokens (named so the values aren't magic where they're consumed) ---
+// Brand tokens.
 const INK = '#0a0a0a'; // near-black primary text/ink
 const INK_SECONDARY = '#5c5c5c'; // muted grey for secondary text
 const PAPER = '#ffffff'; // white surface

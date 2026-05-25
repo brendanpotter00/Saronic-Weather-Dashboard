@@ -1,6 +1,5 @@
-// The 10-day spine: the row of color-coded day columns Tara scans to pick a day. On a phone
-// the row scrolls horizontally so each day's line stays tall enough to read rather than being
-// crushed to a sliver.
+// The 10-day spine: a row of color-coded day columns. On a phone the row scrolls horizontally so
+// each day's line stays readable.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -19,8 +18,7 @@ interface HorizonStripProps {
 export function HorizonStrip({ days, selectedDate, onSelect }: HorizonStripProps) {
   return (
     <Box component="section">
-      {/* Heading on the left, the status key riding the same row on the right; on a narrow screen
-          the key wraps to its own line beneath the heading. */}
+      {/* Heading left, status key right; the key wraps beneath on a narrow screen. */}
       <Box
         sx={{
           display: 'flex',

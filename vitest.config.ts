@@ -1,9 +1,8 @@
 import { defineConfig, mergeConfig, configDefaults } from 'vitest/config';
 import viteConfig from './vite.config';
 
-// Test config is kept separate from vite.config.ts: build and test change for
-// different reasons. Vitest ignores vite.config.ts when this file exists, so we
-// mergeConfig() to keep the React plugin (JSX transform) applied to test files.
+// Separate from vite.config.ts; Vitest ignores vite.config.ts when this file exists, so mergeConfig
+// keeps the React plugin (JSX transform) applied to test files.
 export default mergeConfig(
   viteConfig,
   defineConfig({
@@ -11,14 +10,12 @@ export default mergeConfig(
       environment: 'jsdom', // component tests need a DOM
       globals: true, // describe/it/expect without imports; enables jest-dom matchers
       setupFiles: ['./src/test/setup.ts'],
-      // Don't run the duplicate test suites inside sibling git worktrees (separate checkouts
-      // under .claude/) — they inflate the run and aren't this branch's code.
+      // Don't run the duplicate suites inside sibling git worktrees under .claude/.
       exclude: [...configDefaults.exclude, '.claude/**'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],
-        // Count every source file, not just ones a test imported — otherwise an
-        // entirely untested file is invisible and the 90% number lies.
+        // Count every source file, not just imported ones — otherwise an untested file is invisible.
         all: true,
         include: ['src/**/*.{ts,tsx}'],
         exclude: [

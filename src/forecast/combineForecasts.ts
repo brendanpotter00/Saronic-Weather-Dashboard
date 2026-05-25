@@ -26,10 +26,7 @@ function buildTimestampToWaveHeight(
   return timestampToWaveHeight;
 }
 
-/**
- * Fuse the Forecast + Marine responses into a daylight-only, day-grouped model
- * in Tara's units. Pure (no React/RTK imports) so it can be unit-tested alone.
- */
+/** Fuse the Forecast + Marine responses into a daylight-only, day-grouped model in domain units. */
 export function buildCombinedForecast(
   forecast: ForecastResponse,
   marine: MarineResponse | null,
@@ -45,9 +42,8 @@ export function buildCombinedForecast(
     const rawTime = hourly.time[i]; // raw Open-Meteo local string — the join key
     const time = localTimeToSiteIso(rawTime, timeZone);
     if (time === null) continue; // missing/unparseable timestamp — can't place this hour
-    // Wind and wave go through the same fail-safe guard as the converted factors
-    // (visibility/precip): a NaN or stray string from a malformed-but-200 body becomes
-    // null, so it can't survive `?? null` and falsely make the hour `complete`.
+    // Wind/wave go through the same fail-safe guard as the converted factors: a NaN or stray
+    // string from a malformed-but-200 body becomes null, so it can't falsely make the hour `complete`.
     const windSpeedKn = finiteOrNull(hourly.wind_speed_10m[i]);
     const waveHeightFt = finiteOrNull(waveByTime.get(rawTime)); // null when marine has no match
     const precipitationIn = millimetersToInches(hourly.precipitation[i]);
@@ -58,8 +54,8 @@ export function buildCombinedForecast(
       waveHeightFt,
       precipitationIn,
       visibilityMiles,
-      // Fail-safe: an hour missing any factor can never be a GO. Computed here so
-      // scoring/UI stay dumb — they read `complete`, not re-derive the null checks.
+      // Fail-safe: an hour missing any factor can never be a GO. Computed here so scoring/UI read
+      // `complete` instead of re-deriving the null checks.
       complete:
         windSpeedKn !== null &&
         waveHeightFt !== null &&
@@ -68,11 +64,8 @@ export function buildCombinedForecast(
     });
   }
 
-  // 2) Bucket daylight hours by calendar date (prefix of the local ISO time).
-  // Step 3 drives day order from daily.time, so a daylight hour whose date prefix isn't
-  // in daily.time is intentionally dropped (never surfaced). The two grids align in
-  // practice; if they ever didn't, dropping the orphan hour errs toward no-go, never a
-  // false GO.
+  // 2) Bucket daylight hours by calendar date. Step 3 drives day order from daily.time, so a
+  // daylight hour whose date isn't in daily.time is intentionally dropped — erring toward no-go.
   const hoursByDate = new Map<string, CombinedHour[]>();
   for (const hour of hours) {
     const date = hour.time.slice(0, DATE_KEY_LENGTH);
@@ -81,17 +74,13 @@ export function buildCombinedForecast(
     else hoursByDate.set(date, [hour]);
   }
 
-  // 3) Drive day order/metadata from daily.time (authoritative 10-day list).
+  // 3) Drive day order/metadata from daily.time (authoritative 10-day list). Day metadata is
+  // nullable: a short/absent daily array (or a polar sunrise/sunset) yields a missing value —
+  // carry it through as null rather than fabricating a timestamp or throwing.
   const daily = forecast.daily;
-  // Day metadata fields are nullable: a short/absent daily array (or a polar
-  // sunrise/sunset) yields a missing value at an index — carry that through as null
-  // rather than fabricating a timestamp or throwing.
   const days: DayForecast[] = daily.time.map((date, i) => {
     const sunriseTime = localTimeToSiteIso(daily.sunrise[i], timeZone);
     const sunsetTime = localTimeToSiteIso(daily.sunset[i], timeZone);
-    // Shares the same fail-safe guard as the hourly numeric factors (wind/wave/etc.):
-    // a NaN or stray string from a malformed-but-200 body becomes null, so it can't
-    // survive `?? null` and falsely satisfy the `complete` predicate with garbage metadata.
     const daylightDurationSeconds = finiteOrNull(daily.daylight_duration[i]);
     const hours = hoursByDate.get(date) ?? [];
     return {
@@ -100,10 +89,8 @@ export function buildCombinedForecast(
       sunsetTime,
       daylightDurationSeconds,
       hours,
-      // Day-level analog of CombinedHour.complete: computed here so consumers stay
-      // presentational and never re-derive the null checks. A day is usable only when
-      // it has the metadata to evaluate a daylight window (sunrise/sunset/duration) AND
-      // at least one daylight hour; otherwise the (future) window read can't run.
+      // Day-level analog of CombinedHour.complete: a day is usable only with the metadata to
+      // evaluate a daylight window (sunrise/sunset/duration) AND ≥1 daylight hour.
       complete:
         sunriseTime !== null &&
         sunsetTime !== null &&
