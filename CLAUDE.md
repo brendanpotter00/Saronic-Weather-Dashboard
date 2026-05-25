@@ -35,11 +35,11 @@ file; `docs/API-Endpoints.md` is the authoritative source.
 | Wind | `wind_speed_10m` (kn) | < 15 | 15–20 | > 20 |
 | Wave | `wave_height` (ft) | < 2 | 2–4 | > 4 |
 | Precipitation | `precipitation` (mm) | 0 (none) | — | any rain |
-| Visibility | `visibility` (m → mi) | ≥ 10 mi | 3–10 mi | < 3 mi |
+| Visibility | `visibility` (m → mi) | ≥ 6 mi | 3–6 mi | < 3 mi |
 
 - **Rain is always a no-go** — any precipitation kills the hour (optics demos).
 - **Visibility** comes from the API in **meters** but Tara thinks in **miles**. Convert with
-  `1 mi = 1609.344 m` (≥10 mi ≈ 16,093 m, <3 mi ≈ 4,828 m) before comparing.
+  `1 mi = 1609.344 m` (≥6 mi ≈ 9,656 m, <3 mi ≈ 4,828 m) before comparing.
 - A day is a **candidate** if it contains *any* valid in-bounds daylight window of demo
   length, even when the rest of the day is out of bounds.
 

@@ -6,6 +6,7 @@
 // every cell so the formatting can't drift component to component.
 
 import { Factor } from '../scoring/status';
+import { FACTOR_DECIMALS } from '../scoring/quantize';
 
 // Shown when a reading is missing (null). A no-reading factor scored NO-GO upstream; here it's
 // just "we have no number to show".
@@ -44,8 +45,10 @@ function meridiem(hour: number): { h12: number; ap: 'AM' | 'PM' } {
   return { h12, ap };
 }
 
-// "6 AM", "7 PM" — compact, for the hourly rows.
+// "6 AM", "7 PM" — compact, for the hourly rows. An empty ISO (an unevaluable window's blank
+// start/end time) degrades to the missing dash rather than fabricating "12 AM" from Number('').
 export function formatHourLabel(iso: string): string {
+  if (!iso) return MISSING_DISPLAY;
   const { h12, ap } = meridiem(clockParts(iso).hour);
   return `${h12} ${ap}`;
 }
@@ -64,6 +67,15 @@ export function formatHourOfDay(hour: number): string {
   return `${h12} ${ap}`;
 }
 
+// Compact factor names for the pinned card / confirm dialog's four small readings. The hourly
+// table uses full words in its header ("Wind Speed"); these short forms fit a 64px cell.
+export const FACTOR_LABEL: Record<Factor, string> = {
+  [Factor.Wind]: 'Wind',
+  [Factor.Wave]: 'Wave',
+  [Factor.Precipitation]: 'Rain',
+  [Factor.Visibility]: 'Vis',
+};
+
 // Visibility flattens out at the top of the API's range, so anything at/above this reads as a
 // ceiling ("15+") rather than a noisy exact mile count that implies false precision.
 const VISIBILITY_DISPLAY_CAP_MILES = 15;
@@ -75,24 +87,28 @@ const INCHES = 'in';
 const MILES = 'mi';
 
 // Turn one factor reading into its cell string, with the unit appended to the number (the table
-// header carries only the factor name now). Rounding is per factor: wind & visibility are whole
-// numbers; wave is small so it keeps one decimal; rain is sub-inch so it keeps two — except a
-// clean "0 in" for no rain, and a "<0.01 in" floor so real-but-tiny rain never rounds away to
-// look dry (the exact wrong signal for a no-go factor). Visibility caps at the sensor ceiling
-// ("15+ mi") rather than implying false precision. A missing reading (null) is a unit-less "—",
-// distinct from a measured zero.
+// header carries only the factor name now). This is a PURE STRINGIFIER: the value arrives already
+// quantized to its display resolution by the scoring layer (see quantize.ts), and the tier was
+// computed from that same number — so this must NOT round across a threshold, or the label could
+// once again contradict the colour. It only renders at the shared precision (FACTOR_DECIMALS) and
+// applies display vocabulary: a clean "0 in" for no rain and a "<0.01 in" floor so real-but-tiny
+// rain never reads as dry (the wrong signal for a no-go factor); visibility caps at the sensor
+// ceiling ("15+ mi") rather than implying false precision; a missing reading (null) is a unit-less
+// "—", distinct from a measured zero.
 export function formatFactorValue(factor: Factor, value: number | null): string {
   if (value === null) return MISSING_DISPLAY;
 
   switch (factor) {
     case Factor.Wind:
-      return `${Math.round(value)} ${KNOTS}`;
+      return `${value.toFixed(FACTOR_DECIMALS[Factor.Wind])} ${KNOTS}`;
     case Factor.Wave:
-      return `${value.toFixed(1)} ${FEET}`;
+      return `${value.toFixed(FACTOR_DECIMALS[Factor.Wave])} ${FEET}`;
     case Factor.Precipitation:
       if (value === 0) return `0 ${INCHES}`;
-      return value < 0.01 ? `<0.01 ${INCHES}` : `${value.toFixed(2)} ${INCHES}`;
+      return value < 0.01 ? `<0.01 ${INCHES}` : `${value.toFixed(FACTOR_DECIMALS[Factor.Precipitation])} ${INCHES}`;
     case Factor.Visibility:
-      return value >= VISIBILITY_DISPLAY_CAP_MILES ? `${VISIBILITY_DISPLAY_CAP_MILES}+ ${MILES}` : `${Math.round(value)} ${MILES}`;
+      return value >= VISIBILITY_DISPLAY_CAP_MILES
+        ? `${VISIBILITY_DISPLAY_CAP_MILES}+ ${MILES}`
+        : `${value.toFixed(FACTOR_DECIMALS[Factor.Visibility])} ${MILES}`;
   }
 }

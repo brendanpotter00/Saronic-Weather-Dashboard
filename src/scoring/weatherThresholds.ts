@@ -21,9 +21,9 @@ export const WAVE_CAUTION_FT = WAVE_NOGO_FT * WAVE_CAUTION_FRACTION; // 2 — at
 // Visibility is inverted (more miles = better): like wind/wave it anchors on the no-go
 // limit — here a FLOOR, not a ceiling — and derives the go ideal UP from it via the fraction.
 export const VISIBILITY_NOGO_MILES = 3; // below this = no-go (the anchor)
-export const VISIBILITY_CAUTION_FRACTION = 0.3;
+export const VISIBILITY_CAUTION_FRACTION = 0.5;
 export const VISIBILITY_GO_MILES =
-  VISIBILITY_NOGO_MILES / VISIBILITY_CAUTION_FRACTION; // 10 — at/above = go
+  VISIBILITY_NOGO_MILES / VISIBILITY_CAUTION_FRACTION; // 6 — at/above = go
 
 // Precipitation intentionally has NO threshold constant and NO caution tier: any rain at all
 // is a no-go (optics demos), so the tier compares `> 0` directly. `millimetersToInches` maps a
