@@ -114,3 +114,57 @@ describe('Dashboard (via App)', () => {
     expect(within(alert).getByText(/couldn't load the forecast/i)).toBeInTheDocument();
   });
 });
+
+// The pin flow: click an hour → confirm dialog (with the centered, clamped window + rolled-up
+// status) → Pin → the card fills the top slot; Unpin clears it. The fixture day runs 6 AM–5 PM
+// (12 clear hours), the demo length defaults to 6, so a hover centers leaning later and clamps.
+describe('pin a demo window', () => {
+  beforeEach(() => {
+    mockUseQuery.mockReturnValue({ data: forecast(), isLoading: false, error: undefined });
+  });
+
+  function pinnedCard() {
+    return screen.queryByRole('region', { name: /pinned demo window/i });
+  }
+
+  it('clicking an hour opens the confirm dialog for the block centered on it', () => {
+    renderApp();
+    // Hovered 10 AM, 6-hour demo, leaning later → block starts at 8 AM and runs 8 AM–1 PM.
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 10 AM/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/pin this demo window/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/8 AM – 1 PM · 6-hour demo/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('GO')).toBeInTheDocument();
+  });
+
+  it('clamps at dawn and dusk so every row maps to a valid window', () => {
+    renderApp();
+    // Dawn: 6 AM hover clamps up to the earliest window (6 AM–11 AM).
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 6 AM/i }));
+    expect(within(screen.getByRole('dialog')).getByText(/6 AM – 11 AM · 6-hour demo/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    // Dusk: 5 PM hover clamps down to the latest window (12 PM–5 PM).
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 5 PM/i }));
+    expect(within(screen.getByRole('dialog')).getByText(/12 PM – 5 PM · 6-hour demo/i)).toBeInTheDocument();
+  });
+
+  it('confirming pins the window to the top slot, and Unpin clears it', () => {
+    renderApp();
+    expect(pinnedCard()).not.toBeInTheDocument(); // slot is empty until something is pinned
+
+    fireEvent.click(screen.getByRole('button', { name: /pin a demo window around 10 AM/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^pin window$/i }));
+
+    const card = pinnedCard()!;
+    expect(card).toBeInTheDocument();
+    expect(within(card).getByText(/scheduled demo window/i)).toBeInTheDocument();
+    expect(within(card).getByText(/8 AM – 1 PM · 6-hour demo/i)).toBeInTheDocument();
+    const firstDay = formatDayLabel(DATES[0]);
+    expect(within(card).getByText(new RegExp(`${firstDay.weekday},`))).toBeInTheDocument();
+
+    fireEvent.click(within(card).getByRole('button', { name: /^unpin$/i }));
+    expect(pinnedCard()).not.toBeInTheDocument();
+  });
+});

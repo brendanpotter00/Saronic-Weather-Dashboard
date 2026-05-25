@@ -14,6 +14,7 @@ import {
   type AvailableWindow,
   type DaylightEnvelope,
   clampWindow,
+  clockHour,
   daylightEnvelope,
   defaultAvailableWindow,
   isHourInWindow,
@@ -40,6 +41,7 @@ export interface ScoredFactor {
 
 export interface ScoredHour {
   time: string; // pass-through ISO 8601 with site offset
+  clockHour: number; // hour-of-day 0–23 read from `time` — the currency of window selection/pinning
   wind: ScoredFactor;
   wave: ScoredFactor;
   precipitation: ScoredFactor;
@@ -105,6 +107,7 @@ export function scoreHour(hour: CombinedHour, isInWindow = true): ScoredHour {
 
   return {
     time: hour.time,
+    clockHour: clockHour(hour.time),
     wind: toScoredFactor(wind),
     wave: toScoredFactor(wave),
     precipitation: toScoredFactor(precipitation),

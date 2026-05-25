@@ -10,12 +10,22 @@ import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
 import { useScoredForecast } from './hooks/useScoredForecast';
 import type { ScoringOptions } from '../scoring/scoring';
+import { scoreNamedWindow } from '../scoring/window';
 import { DashboardHeader } from './components/DashboardHeader';
 import { PinnedWindowSlot } from './components/PinnedWindowSlot';
+import { PinConfirmDialog } from './components/PinConfirmDialog';
 import { WindowControls } from './components/WindowControls';
 import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
 import { DashboardFooter } from './components/DashboardFooter';
+
+// A pinned/previewed window is identified by its day + start clock-hour; the length is derived
+// from the dashboard-wide demo length, never stored, so the card always reflects the current
+// setting and re-scores against the latest forecast.
+interface WindowRef {
+  date: string;
+  startHour: number;
+}
 
 export function Dashboard() {
   // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
@@ -26,6 +36,11 @@ export function Dashboard() {
   // null = "no explicit choice yet" → fall back to the first day (today). Keyed by the stable
   // date string, not an index, so it survives a refetch that reorders/replaces the array.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // The window Tara has pinned to the top, and the one currently open in the confirm dialog (a
+  // pending pin, or an Edit of the existing one). Both ephemeral view state with one owner, like
+  // selectedDate — persistence is out of scope (picture it DB-saved).
+  const [pinnedWindow, setPinnedWindow] = useState<WindowRef | null>(null);
+  const [dialogWindow, setDialogWindow] = useState<WindowRef | null>(null);
 
   if (isLoading) {
     return (
@@ -60,11 +75,27 @@ export function Dashboard() {
   const selected = scored.days.find((day) => day.date === selectedDate) ?? scored.days[0];
   const candidateCount = scored.days.filter((day) => day.isCandidate).length;
 
+  // Re-derive each window's score from the live forecast on every render — the pinned card and the
+  // dialog stay dumb, and a refetch makes the status "firm up" with no card-level logic. A window
+  // whose day has rolled off the 10-day horizon scores null and the slot/dialog simply hide.
+  const scoreFor = (ref: WindowRef | null) => {
+    const day = ref && scored.days.find((d) => d.date === ref.date);
+    return ref && day ? scoreNamedWindow(day, ref.startHour, scored.demoWindowHours) : null;
+  };
+  const pinnedScore = scoreFor(pinnedWindow);
+  const dialogScore = scoreFor(dialogWindow);
+
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
       <Stack spacing={{ xs: 2, md: 3 }}>
         <DashboardHeader />
-        <PinnedWindowSlot />
+        <PinnedWindowSlot
+          date={pinnedWindow?.date ?? null}
+          score={pinnedScore}
+          demoWindowHours={scored.demoWindowHours}
+          onEdit={() => setDialogWindow(pinnedWindow)}
+          onUnpin={() => setPinnedWindow(null)}
+        />
         <WindowControls
           availableWindow={scored.availableWindow}
           daylightBounds={scored.daylightBounds}
@@ -80,13 +111,30 @@ export function Dashboard() {
           </Alert>
         )}
         <HorizonStrip days={scored.days} selectedDate={selected.date} onSelect={setSelectedDate} />
-        <DayDetail day={selected} />
+        <DayDetail
+          day={selected}
+          demoWindowHours={scored.demoWindowHours}
+          onRequestPin={(date, startHour) => setDialogWindow({ date, startHour })}
+        />
         <DashboardFooter
           site={scored.site}
           marineSite={scored.marineSite}
           marineAvailable={scored.marineAvailable}
         />
       </Stack>
+      {dialogWindow && dialogScore && (
+        <PinConfirmDialog
+          open
+          date={dialogWindow.date}
+          score={dialogScore}
+          demoWindowHours={scored.demoWindowHours}
+          onConfirm={() => {
+            setPinnedWindow(dialogWindow);
+            setDialogWindow(null);
+          }}
+          onClose={() => setDialogWindow(null)}
+        />
+      )}
     </Container>
   );
 }

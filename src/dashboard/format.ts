@@ -64,6 +64,26 @@ export function formatHourOfDay(hour: number): string {
   return `${h12} ${ap}`;
 }
 
+// Whole calendar days from today to a "YYYY-MM-DD" key — the pinned card's "T-minus N days" line.
+// Compared at LOCAL midnight on both sides (same component-built Date trick as formatDayLabel) so
+// it counts calendar days, not 24h spans, and never drifts a day in a western timezone.
+export function daysUntil(dateKey: string): number {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const target = new Date(year, month - 1, day);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+// Compact factor names for the pinned card / confirm dialog's four small readings. The hourly
+// table uses full words in its header ("Wind Speed"); these short forms fit a 64px cell.
+export const FACTOR_LABEL: Record<Factor, string> = {
+  [Factor.Wind]: 'Wind',
+  [Factor.Wave]: 'Wave',
+  [Factor.Precipitation]: 'Rain',
+  [Factor.Visibility]: 'Vis',
+};
+
 // Visibility flattens out at the top of the API's range, so anything at/above this reads as a
 // ceiling ("15+") rather than a noisy exact mile count that implies false precision.
 const VISIBILITY_DISPLAY_CAP_MILES = 15;

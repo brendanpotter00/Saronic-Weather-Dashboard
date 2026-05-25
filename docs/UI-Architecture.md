@@ -40,14 +40,15 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
         │  → ScoredForecast { site, marineSite, timezone, marineAvailable,
         │       demoWindowHours, availableWindow, daylightBounds, daylightEnvelope, days: ScoredDay[] }
         ▼
-<Dashboard>          owns selectedDate + windowConfig (ScoringOptions | null)  (src/dashboard/Dashboard.tsx)
+<Dashboard>          owns selectedDate + windowConfig + pinnedWindow + dialogWindow  (src/dashboard/Dashboard.tsx)
         ├─ <DashboardHeader>  (title only)
-        ├─ <PinnedWindowSlot> (renders null)
+        ├─ <PinnedWindowSlot> (the pinned window's card; empty until one is pinned — scoreNamedWindow re-scores it each render)
         ├─ <WindowControls>   (available window + demo length → setWindowConfig)
         ├─ marine-unavailable <Alert> (when !marineAvailable)
         ├─ <HorizonStrip>     → <DayColumn> → <HourLine>   (click → setSelectedDate; out-of-window hours dimmed)
-        ├─ <DayDetail>        → <HourRow> → <FactorCell>   (out-of-window rows dimmed)
-        └─ <DashboardFooter>  → <StatusLegend> + <Attribution>
+        ├─ <DayDetail>        → <HourRow> → <FactorCell>   (hover/focus previews a centered window; click → onRequestPin)
+        ├─ <DashboardFooter>  → <StatusLegend> + <Attribution>
+        └─ <PinConfirmDialog> (a pending pin or an Edit; Pin → setPinnedWindow) → <WindowFactorGrid>
 ```
 
 - **Scoring is memoised on the query `data` reference and the window knobs.** Expand/collapse and
@@ -70,12 +71,14 @@ useScoredForecast(windowConfig?)      useMemo(scoreForecast(data, opts)) (src/da
 | `components/DashboardFooter.tsx` | Footer container; lays out `StatusLegend` + `Attribution` (side-by-side on desktop, stacked on phones). |
 | `components/Attribution.tsx` | Source (Open-Meteo) + location + resolved forecast/marine grid cells. |
 | `components/StatusLegend.tsx` | The key; band numbers interpolated from the threshold constants. |
-| `components/PinnedWindowSlot.tsx` | Reserved empty slot for the deferred pin-to-top feature. |
+| `components/PinnedWindowSlot.tsx` | The pinned demo window's card (status strip + word, range, worst-in-window factors, days-out, Edit/Unpin); renders null until one is pinned, so no layout shift. |
+| `components/PinConfirmDialog.tsx` | The commit step: shows the previewed window + rolled-up status + worst-in-window readings; Pin/Cancel. Click/tap → confirm (degrades to touch). |
+| `components/WindowFactorGrid.tsx` | The four worst-in-window readings as labelled, status-tinted cells; shared by the dialog and the pinned card so they can't drift. |
 | `components/HorizonStrip.tsx` | The 10-day line container (horizontal scroll on phones). |
 | `components/DayColumn.tsx` | One tappable day: weekday/date (date tinted by badge) + `HourLine`. |
 | `components/HourLine.tsx` | One segment per daylight hour, coloured by hour status; out-of-window hours dimmed (reads `hour.isInWindow`). |
-| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. |
-| `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. |
+| `components/DayDetail.tsx` | Inline drill-down for the selected day: badge word + summary line + the hourly table. Owns `hoverStart` and the pin-selection wiring; a click bubbles `onRequestPin(date, startHour)` up to the dashboard. |
+| `components/HourRow.tsx` | One hour row (shares `HOUR_GRID` with the detail header); dimmed when out-of-window. The pin-selection surface: hover/focus previews a centered window (tinted by its status, bracketed on first/last rows), click/tap/Enter commits. |
 | `components/FactorCell.tsx` | One factor's formatted, status-tinted value. |
 
 Theme/tokens live in `src/theme/` — see `docs/UI-Style-Guide.md`.
@@ -124,6 +127,7 @@ the lowest level" rule), so components stay dumb:
 - **Dashboard-wide available-window + demo-length config** (top bar): clips the candidacy scan
   live and dims out-of-window hours across the line and the detail.
 - 10-day horizon line; click-to-open inline day detail with the hourly breakdown.
+- **Pin a chosen demo window to the top** (centered hover → confirm → card that re-scores each refetch).
 - Status legend/key; source + location attribution with resolved grid cells.
 - Marine-unavailable and incomplete-day states.
 - Mobile-responsive layout.
@@ -136,9 +140,16 @@ These are intentionally **not built**, but the structure is ready so each is add
    availableWindow })` takes both as arguments; `useScoredForecast(windowConfig)` passes them from
    `Dashboard` state, set via `WindowControls`. (See "Cross-layer changes" above.)
 
-2. **Pin a chosen window to the top.** `PinnedWindowSlot` already sits at the top of the layout
-   and `Dashboard` already owns the day selection. *Seam:* add `pinnedWindow` state in
-   `Dashboard`, render its content into `PinnedWindowSlot`. No layout shift.
+2. ~~**Pin a chosen window to the top.**~~ **Built.** The interaction is **centered hover** in the
+   hourly table — point at the middle of a stretch, the fixed-length block centers (`lengthHours`
+   from `demoWindowHours`) + tints by status, click/tap → `PinConfirmDialog` → pin. `Dashboard`
+   owns `pinnedWindow`/`dialogWindow` (`{ date, startHour }`) and re-derives both scores from the
+   live forecast each render, so the pinned card firms up on every refetch with no card-level logic.
+   New scoring surface in `src/scoring/window.ts`: `centeredWindowStart` (the only selection math —
+   center, lean-later, clamp at dawn/dusk) and `scoreNamedWindow` (rolls a named block up to one
+   status + worst-in-window readings, fail-safe no-go when it can't be fully evaluated). Each
+   `ScoredHour` now carries `clockHour` so components never parse a timestamp. Full design:
+   **`docs/plan-pin-window.md`**; reference prototype **`docs/prototype-window-pin.html`**.
 
 3. **Multiple cities (dropdown + per-city thresholds).** `SITES` is already a list and `Site`
    documents that timezone/thresholds belong on it. *Seam:* a `CitySelect` in `DashboardHeader`
