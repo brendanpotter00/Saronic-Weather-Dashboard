@@ -12,7 +12,7 @@ describe('PinConfirmDialog', () => {
         open
         date="2026-05-24"
         score={namedWindowScore()}
-        demoWindowHours={6}
+        lengthHours={6}
         onConfirm={vi.fn()}
         onClose={vi.fn()}
       />,
@@ -32,7 +32,7 @@ describe('PinConfirmDialog', () => {
         open
         date="2026-05-24"
         score={namedWindowScore()}
-        demoWindowHours={6}
+        lengthHours={6}
         onConfirm={onConfirm}
         onClose={onClose}
       />,
@@ -49,7 +49,7 @@ describe('PinConfirmDialog', () => {
         open
         date="2026-05-24"
         score={namedWindowScore({ status: Status.NoGo, complete: false })}
-        demoWindowHours={6}
+        lengthHours={6}
         onConfirm={vi.fn()}
         onClose={vi.fn()}
       />,
@@ -63,7 +63,7 @@ describe('PinConfirmDialog', () => {
         open={false}
         date="2026-05-24"
         score={namedWindowScore()}
-        demoWindowHours={6}
+        lengthHours={6}
         onConfirm={vi.fn()}
         onClose={vi.fn()}
       />,

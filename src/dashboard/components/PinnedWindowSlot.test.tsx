@@ -6,9 +6,9 @@ import { renderWithTheme } from '../../test/renderWithTheme';
 import { namedWindowScore } from '../../test/fixtures';
 
 describe('PinnedWindowSlot', () => {
-  it('renders nothing while the slot is empty', () => {
+  it('renders nothing when the score is null (the day has rolled off the horizon)', () => {
     const { container } = renderWithTheme(
-      <PinnedWindowSlot date={null} score={null} lengthHours={6} onUnpin={vi.fn()} />,
+      <PinnedWindowSlot date="2026-05-24" score={null} lengthHours={6} onUnpin={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });

@@ -1,9 +1,8 @@
-// The reserved layout seam at the top of the dashboard, now filled by the "pin a chosen window"
-// feature. Empty (renders null) until Tara pins one — so there's no layout shift — then it shows
-// her pinned demo window: status strip + word, day, range, and the four worst-in-window readings,
-// plus a top-corner ✕ to unpin. It is pure presentation: the dashboard re-derives the score from
-// the live forecast on every render (scoreNamedWindow), so the status firms up here with no
-// card-level logic.
+// One pinned demo window, rendered as a card: status strip + word, day, range, and the four
+// worst-in-window readings, plus a top-corner ✕ to unpin. It is pure presentation — the section
+// re-derives the score from the live forecast on every render (scoreNamedWindow), so the status
+// firms up here with no card-level logic. Renders nothing when that score is null (the window's
+// day has rolled off the 10-day horizon), so a stale pin simply drops out without erroring.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -40,14 +39,14 @@ const UnpinButton = styled(IconButton)(({ theme }) => ({
 }));
 
 interface PinnedWindowSlotProps {
-  date: string | null; // null = nothing pinned → the slot stays empty
-  score: NamedWindowScore | null;
+  date: string;
+  score: NamedWindowScore | null; // null = the window's day has rolled off the horizon → hide the card
   lengthHours: number; // the demo length frozen at pin time (independent of the live config)
   onUnpin: () => void;
 }
 
 export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWindowSlotProps) {
-  if (date === null || score === null) return null;
+  if (score === null) return null;
 
   const { weekday, month, dayNum } = formatDayLabel(date);
 

@@ -5,34 +5,30 @@
 // only owns the React state and wires the dialog step to them.
 
 import { useState } from 'react';
-import {
-  type WindowSelection,
-  type PinnedWindow,
-  addPinnedWindow,
-  removePinnedWindow,
-} from '../pinnedWindows';
+import { type PinnedWindow, addPinnedWindow, removePinnedWindow } from '../pinnedWindows';
 
 export interface UsePinnedWindows {
   pinnedWindows: PinnedWindow[]; // pinned windows in pin order
-  pendingPin: WindowSelection | null; // the window currently in the confirm dialog (null = closed)
-  requestPin: (date: string, startHour: number) => void; // open the confirm dialog for a pick
-  confirmPin: (demoWindowHours: number) => void; // commit the pending pin at the given (frozen) length
+  pendingPin: PinnedWindow | null; // the window in the confirm dialog, length already frozen (null = closed)
+  requestPin: (date: string, startHour: number, lengthHours: number) => void; // open the dialog, freezing the live length
+  confirmPin: () => void; // commit the pending pin exactly as previewed
   cancelPin: () => void; // dismiss the confirm dialog without pinning
   unpin: (window: PinnedWindow) => void; // remove a pinned window by content identity
 }
 
 export function usePinnedWindows(): UsePinnedWindows {
   const [pinnedWindows, setPinnedWindows] = useState<PinnedWindow[]>([]);
-  const [pendingPin, setPendingPin] = useState<WindowSelection | null>(null);
+  const [pendingPin, setPendingPin] = useState<PinnedWindow | null>(null);
 
   return {
     pinnedWindows,
     pendingPin,
-    requestPin: (date, startHour) => setPendingPin({ date, startHour }),
-    confirmPin: (demoWindowHours) => {
+    // Freeze the live demo length into the pending pin at request time, so the length the dialog
+    // previews and the length confirmPin commits are one and the same — they can't drift apart.
+    requestPin: (date, startHour, lengthHours) => setPendingPin({ date, startHour, lengthHours }),
+    confirmPin: () => {
       if (pendingPin === null) return;
-      // Freeze the current demo length into the pin so it stays independent of later config changes.
-      setPinnedWindows((prev) => addPinnedWindow(prev, { ...pendingPin, lengthHours: demoWindowHours }));
+      setPinnedWindows((prev) => addPinnedWindow(prev, pendingPin));
       setPendingPin(null);
     },
     cancelPin: () => setPendingPin(null),

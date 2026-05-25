@@ -10,7 +10,6 @@ const PIN_A = { date: '2026-05-24', startHour: 8, lengthHours: 6 };
 function renderSection(overrides: Partial<Parameters<typeof PinnedWindowsSection>[0]> = {}) {
   const props = {
     days,
-    demoWindowHours: 6,
     pinnedWindows: [],
     pendingPin: null,
     onConfirmPin: vi.fn(),
@@ -27,7 +26,6 @@ describe('PinnedWindowsSection', () => {
     const { container } = renderWithTheme(
       <PinnedWindowsSection
         days={days}
-        demoWindowHours={6}
         pinnedWindows={[]}
         pendingPin={null}
         onConfirmPin={vi.fn()}
@@ -55,16 +53,16 @@ describe('PinnedWindowsSection', () => {
     expect(onUnpin).toHaveBeenCalledWith(PIN_A);
   });
 
-  it('opens the confirm dialog for a pending pin and confirms at the live demo length', () => {
-    const { onConfirmPin } = renderSection({ pendingPin: { date: '2026-05-24', startHour: 8 } });
+  it('opens the confirm dialog for a pending pin and confirms it', () => {
+    const { onConfirmPin } = renderSection({ pendingPin: PIN_A });
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText(/pin this demo window/i)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: /^pin window$/i }));
-    expect(onConfirmPin).toHaveBeenCalledWith(6);
+    expect(onConfirmPin).toHaveBeenCalledTimes(1);
   });
 
   it('cancels a pending pin', () => {
-    const { onCancelPin } = renderSection({ pendingPin: { date: '2026-05-24', startHour: 8 } });
+    const { onCancelPin } = renderSection({ pendingPin: PIN_A });
     fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
     expect(onCancelPin).toHaveBeenCalledTimes(1);
   });

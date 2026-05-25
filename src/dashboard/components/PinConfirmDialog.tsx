@@ -21,12 +21,12 @@ interface PinConfirmDialogProps {
   open: boolean;
   date: string;
   score: NamedWindowScore;
-  demoWindowHours: number;
+  lengthHours: number; // the demo length being frozen into this pin (matches the previewed block)
   onConfirm: () => void;
   onClose: () => void;
 }
 
-export function PinConfirmDialog({ open, date, score, demoWindowHours, onConfirm, onClose }: PinConfirmDialogProps) {
+export function PinConfirmDialog({ open, date, score, lengthHours, onConfirm, onClose }: PinConfirmDialogProps) {
   const { weekday, month, dayNum } = formatDayLabel(date);
 
   return (
@@ -42,7 +42,7 @@ export function PinConfirmDialog({ open, date, score, demoWindowHours, onConfirm
               {weekday}, {month} {dayNum}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {formatHourLabel(score.startTime)} – {formatHourLabel(score.endTime)} · {demoWindowHours}-hour demo
+              {formatHourLabel(score.startTime)} – {formatHourLabel(score.endTime)} · {lengthHours}-hour demo
             </Typography>
           </Box>
 

@@ -6,23 +6,21 @@
 
 import type { ScoredDay } from '../../scoring/scoring';
 import { scoreNamedWindow } from '../../scoring/window';
-import { type PinnedWindow, type WindowSelection, pinnedWindowKey } from '../pinnedWindows';
+import { type PinnedWindow, pinnedWindowKey } from '../pinnedWindows';
 import { PinnedWindowSlot } from '../components/PinnedWindowSlot';
 import { PinConfirmDialog } from '../components/PinConfirmDialog';
 
 interface PinnedWindowsSectionProps {
   days: ScoredDay[]; // the live scored days the pinned windows re-score against
-  demoWindowHours: number; // live effective demo length: the dialog previews at it; a pin freezes it
   pinnedWindows: PinnedWindow[];
-  pendingPin: WindowSelection | null; // the pick awaiting confirmation (null = dialog closed)
-  onConfirmPin: (demoWindowHours: number) => void;
+  pendingPin: PinnedWindow | null; // the pick awaiting confirmation, length already frozen (null = dialog closed)
+  onConfirmPin: () => void;
   onCancelPin: () => void;
   onUnpin: (window: PinnedWindow) => void;
 }
 
 export function PinnedWindowsSection({
   days,
-  demoWindowHours,
   pinnedWindows,
   pendingPin,
   onConfirmPin,
@@ -33,9 +31,9 @@ export function PinnedWindowsSection({
   const findDay = (date: string) => days.find((day) => day.date === date);
 
   const pendingDay = pendingPin && findDay(pendingPin.date);
-  // The dialog previews at the LIVE demo length; each pinned card scores at its own frozen length.
+  // Both the dialog preview and each pinned card score at the window's own frozen length.
   const pendingScore =
-    pendingPin && pendingDay ? scoreNamedWindow(pendingDay, pendingPin.startHour, demoWindowHours) : null;
+    pendingPin && pendingDay ? scoreNamedWindow(pendingDay, pendingPin.startHour, pendingPin.lengthHours) : null;
 
   return (
     <>
@@ -57,8 +55,8 @@ export function PinnedWindowsSection({
           open
           date={pendingPin.date}
           score={pendingScore}
-          demoWindowHours={demoWindowHours}
-          onConfirm={() => onConfirmPin(demoWindowHours)}
+          lengthHours={pendingPin.lengthHours}
+          onConfirm={onConfirmPin}
           onClose={onCancelPin}
         />
       )}

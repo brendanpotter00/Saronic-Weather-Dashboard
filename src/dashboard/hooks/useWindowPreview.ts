@@ -36,10 +36,17 @@ export function useWindowPreview(
     : null;
   const windowFits = bounds !== null && bounds.endHour - bounds.startHour + 1 >= demoWindowHours;
 
-  // Preview status drives the tint; recomputed only when the hovered start moves. scoreNamedWindow
-  // reads the already-scored hours, so this is cheap.
-  const preview = hoverStart !== null ? scoreNamedWindow(day, hoverStart, demoWindowHours) : null;
-  const selEnd = hoverStart !== null ? hoverStart + demoWindowHours - 1 : null;
+  // The previewed block as one nullable object: its start/end clock hours and its rolled-up status
+  // move together, so they narrow away together (no end without a start) and no `!` is needed.
+  // scoreNamedWindow reads the already-scored hours, so recomputing on each hovered start is cheap.
+  const preview =
+    hoverStart !== null
+      ? {
+          startHour: hoverStart,
+          endHour: hoverStart + demoWindowHours - 1,
+          status: scoreNamedWindow(day, hoverStart, demoWindowHours).status,
+        }
+      : null;
 
   const resolveStart = (clockHour: number) =>
     bounds ? centeredWindowStart(clockHour, demoWindowHours, bounds) : null;
@@ -47,9 +54,10 @@ export function useWindowPreview(
   return {
     windowFits,
     selectionStatus: preview?.status ?? null,
-    isInSelection: (clockHour) => hoverStart !== null && clockHour >= hoverStart && clockHour <= selEnd!,
-    isSelectionStart: (clockHour) => clockHour === hoverStart,
-    isSelectionEnd: (clockHour) => clockHour === selEnd,
+    isInSelection: (clockHour) =>
+      preview !== null && clockHour >= preview.startHour && clockHour <= preview.endHour,
+    isSelectionStart: (clockHour) => preview !== null && clockHour === preview.startHour,
+    isSelectionEnd: (clockHour) => preview !== null && clockHour === preview.endHour,
     previewHour: (clockHour) => setHoverStart(resolveStart(clockHour)),
     clearPreview: () => setHoverStart(null),
     selectHour: (clockHour) => {

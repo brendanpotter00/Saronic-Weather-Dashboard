@@ -1,11 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { Status } from '../../scoring/status';
 import { useWindowPreview } from './useWindowPreview';
 import { scoredDay } from '../../test/fixtures';
 
 // The fixture day runs 6 AM–5 PM (clock hours 6..17); a 6-hour demo leans later and clamps.
 const day = scoredDay('2026-05-24');
 const shortDay = scoredDay('2026-05-24', { hours: scoredDay('2026-05-24').hours.slice(0, 3) }); // 6–8 AM
+// Same all-clear day but the 10 AM hour is no-go — it falls inside the block centered on 10 AM.
+const dayWithNoGoMidday = scoredDay('2026-05-24', {
+  hours: scoredDay('2026-05-24').hours.map((hour) =>
+    hour.clockHour === 10 ? { ...hour, status: Status.NoGo } : hour,
+  ),
+});
 
 describe('useWindowPreview', () => {
   it('windowFits is true when daylight is at least the demo length', () => {
@@ -30,6 +37,21 @@ describe('useWindowPreview', () => {
     expect(result.current.isInSelection(13)).toBe(true);
     expect(result.current.isInSelection(7)).toBe(false);
     expect(result.current.isInSelection(14)).toBe(false);
+  });
+
+  it('tints the previewed block with its worst hour (a no-go hour inside it makes the block no-go)', () => {
+    const { result } = renderHook(() => useWindowPreview(dayWithNoGoMidday, 6, vi.fn()));
+    act(() => result.current.previewHour(10)); // → 8 AM–1 PM, which contains the 10 AM no-go hour
+    expect(result.current.selectionStatus).toBe(Status.NoGo);
+  });
+
+  it('keeps selection flags inert when no window fits (previewHour is a no-op)', () => {
+    const { result } = renderHook(() => useWindowPreview(shortDay, 6, vi.fn()));
+    act(() => result.current.previewHour(6)); // nothing can center in a sub-demo-length day
+    expect(result.current.selectionStatus).toBeNull();
+    expect(result.current.isInSelection(6)).toBe(false);
+    expect(result.current.isSelectionStart(6)).toBe(false);
+    expect(result.current.isSelectionEnd(6)).toBe(false);
   });
 
   it('clearPreview drops the preview', () => {

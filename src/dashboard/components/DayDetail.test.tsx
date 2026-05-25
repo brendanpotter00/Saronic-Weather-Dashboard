@@ -26,7 +26,7 @@ describe('DayDetail', () => {
     const onRequestPin = vi.fn();
     renderWithTheme(<DayDetail day={day} demoWindowHours={6} onRequestPin={onRequestPin} />);
     fireEvent.click(screen.getByRole('button', { name: /around 10 AM/i }));
-    expect(onRequestPin).toHaveBeenCalledWith('2026-05-24', 8);
+    expect(onRequestPin).toHaveBeenCalledWith('2026-05-24', 8, 6);
   });
 
   it('shows the no-fit hint when daylight is shorter than the demo length', () => {

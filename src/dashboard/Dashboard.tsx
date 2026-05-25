@@ -71,7 +71,6 @@ export function Dashboard() {
         />
         <PinnedWindowsSection
           days={scored.days}
-          demoWindowHours={scored.demoWindowHours}
           pinnedWindows={pins.pinnedWindows}
           pendingPin={pins.pendingPin}
           onConfirmPin={pins.confirmPin}

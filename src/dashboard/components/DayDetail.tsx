@@ -46,13 +46,16 @@ const HourGridHeader = styled(Box)(({ theme }) => ({
 interface DayDetailProps {
   day: ScoredDay;
   demoWindowHours: number;
-  onRequestPin: (date: string, startHour: number) => void;
+  onRequestPin: (date: string, startHour: number, lengthHours: number) => void;
 }
 
 export function DayDetail({ day, demoWindowHours, onRequestPin }: DayDetailProps) {
   const { weekday, month, dayNum } = formatDayLabel(day.date);
 
-  const preview = useWindowPreview(day, demoWindowHours, (startHour) => onRequestPin(day.date, startHour));
+  // Commit at the live demo length — that becomes the pin's frozen length from this moment on.
+  const preview = useWindowPreview(day, demoWindowHours, (startHour) =>
+    onRequestPin(day.date, startHour, demoWindowHours),
+  );
 
   // The how-to hint when a window fits, or why one doesn't — surfaced from the daylight-hours info
   // icon so the header stays uncluttered.

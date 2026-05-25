@@ -49,6 +49,6 @@ describe('ForecastSection', () => {
     const onRequestPin = vi.fn();
     renderSection({ onRequestPin });
     fireEvent.click(screen.getByRole('button', { name: /around 10 AM/i }));
-    expect(onRequestPin).toHaveBeenCalledWith('2026-05-24', 8);
+    expect(onRequestPin).toHaveBeenCalledWith('2026-05-24', 8, 6);
   });
 });

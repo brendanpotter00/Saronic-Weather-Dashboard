@@ -3,10 +3,10 @@
 // expanded — the selected date, falling back to the first day (today) — so the strip highlight and
 // the detail can never disagree about which day is open.
 
-import Alert from '@mui/material/Alert';
 import type { ScoredDay } from '../../scoring/scoring';
 import { HorizonStrip } from '../components/HorizonStrip';
 import { DayDetail } from '../components/DayDetail';
+import { MarineUnavailableAlert } from '../components/MarineUnavailableAlert';
 
 interface ForecastSectionProps {
   days: ScoredDay[];
@@ -14,7 +14,7 @@ interface ForecastSectionProps {
   demoWindowHours: number;
   selectedDate: string | null; // null = no explicit choice yet → fall back to the first day
   onSelectDate: (date: string) => void;
-  onRequestPin: (date: string, startHour: number) => void;
+  onRequestPin: (date: string, startHour: number, lengthHours: number) => void;
 }
 
 export function ForecastSection({
@@ -31,11 +31,7 @@ export function ForecastSection({
 
   return (
     <>
-      {!marineAvailable && (
-        <Alert severity="warning">
-          Marine (wave) data is unavailable — every hour is treated as no-go until it returns.
-        </Alert>
-      )}
+      {!marineAvailable && <MarineUnavailableAlert />}
       <HorizonStrip days={days} selectedDate={selected.date} onSelect={onSelectDate} />
       <DayDetail day={selected} demoWindowHours={demoWindowHours} onRequestPin={onRequestPin} />
     </>

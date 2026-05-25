@@ -5,14 +5,13 @@
 // — each surface sizes it for its own context — so font size (and any alignment) comes in via sx.
 
 import Box from '@mui/material/Box';
-import type { ElementType } from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { Status } from '../../scoring/status';
 import { STATUS_LABEL, statusMainColor } from '../../theme/statusColor';
 
 interface StatusWordProps {
   status: Status;
-  component?: ElementType; // 'div' in a card, 'span' inline in the dialog
+  component?: 'div' | 'span'; // block in a card, inline in the dialog — the only two intended uses
   sx?: SxProps<Theme>; // caller-owned size/alignment (e.g. fontSize, textAlign)
 }
 
