@@ -52,10 +52,11 @@ in a window kills that window outright.
 
 Two Open-Meteo APIs, no key/auth, joined by their hourly `time[]` arrays:
 
-- **Forecast API** (`api.open-meteo.com/v1/forecast`) — wind, precipitation, visibility,
-  `weather_code`, `is_day`, and daily `sunrise`/`sunset`.
-- **Marine API** (`marine-api.open-meteo.com/v1/marine`) — `wave_height` (+ wind-wave/swell
-  context).
+- **Forecast API** (`api.open-meteo.com/v1/forecast`) — we request wind, precipitation,
+  visibility, `is_day`, and daily `sunrise`/`sunset` (more, e.g. `weather_code`, is
+  available but not requested — see `docs/API-Endpoints.md`).
+- **Marine API** (`marine-api.open-meteo.com/v1/marine`) — `wave_height` (wind-wave/swell
+  context is available but not requested).
 
 Always send these params: `timezone=America/Chicago`, `wind_speed_unit=kn`,
 `length_unit=imperial` (waves in ft), `forecast_days=10`. Site is `latitude=30.3674`,

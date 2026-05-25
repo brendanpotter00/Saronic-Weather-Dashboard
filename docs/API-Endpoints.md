@@ -22,21 +22,26 @@ Conditions Tara cares about and where each comes from:
 | --- | --- | --- |
 | Wind speed | Forecast | `wind_speed_10m` |
 | Wave height | Marine | `wave_height` |
-| Precipitation | Forecast | `precipitation`, `precipitation_probability` |
+| Precipitation | Forecast | `precipitation` |
 | Visibility | Forecast | `visibility` |
+
+We request **only** the variables the go/no-go read consumes — not every available
+field — keeping the request minimal per the brief. The exact lists live in
+`src/forecast/openMeteoConstants.ts`; the "requested" tables below mirror them, and each
+is followed by an "available, not requested" table documenting the rest for future scope.
 
 ---
 
 ## 1. Weather Forecast API
 
-Wind, precipitation, visibility, sky condition, and the daylight window.
+Wind, precipitation, visibility, and the daylight window.
 
 **Base URL:** `https://api.open-meteo.com/v1/forecast`
 
 **Example request** (copy-paste runnable):
 
 ```
-https://api.open-meteo.com/v1/forecast?latitude=30.3674&longitude=-89.0928&hourly=wind_speed_10m,wind_gusts_10m,precipitation,precipitation_probability,visibility,weather_code,is_day&daily=sunrise,sunset,daylight_duration&wind_speed_unit=kn&timezone=America/Chicago&forecast_days=10
+https://api.open-meteo.com/v1/forecast?latitude=30.3674&longitude=-89.0928&hourly=wind_speed_10m,precipitation,visibility,is_day&daily=sunrise,sunset,daylight_duration&wind_speed_unit=kn&timezone=America/Chicago&forecast_days=10
 ```
 
 **Docs:** https://open-meteo.com/en/docs
@@ -52,19 +57,30 @@ https://api.open-meteo.com/v1/forecast?latitude=30.3674&longitude=-89.0928&hourl
 | `timezone` | `America/Chicago` | local times |
 | `forecast_days` | `10` | 10-day look-ahead |
 
-### Hourly variables pulled
+### Hourly variables requested
+
+The four the go/no-go read consumes (`FORECAST_HOURLY` in `openMeteoConstants.ts`):
 
 | Variable | Unit returned | Used for |
 | --- | --- | --- |
 | `wind_speed_10m` | `kn` | wind go/no-go |
-| `wind_gusts_10m` | `kn` | gust context (secondary) |
 | `precipitation` | `mm` | rain (any rain = no-go per Tara) |
-| `precipitation_probability` | `%` | rain likelihood context |
-| `visibility` | `m` | visibility (see open question below) |
-| `weather_code` | WMO code | human-readable condition / icon |
+| `visibility` | `m` | visibility (converted to miles, see §3) |
 | `is_day` | `1` day / `0` night | exclude night hours; demos are daytime only |
 
-### Daily variables pulled
+### Other available variables (not requested)
+
+The Forecast API also offers these. We don't request them today (so they're absent from
+the example URL and response below), but they're here for when scope grows — e.g. a
+condition icon or a gust read:
+
+| Variable | Unit returned | Could be used for |
+| --- | --- | --- |
+| `wind_gusts_10m` | `kn` | gust context (secondary) |
+| `precipitation_probability` | `%` | rain likelihood context |
+| `weather_code` | WMO code | human-readable condition / icon |
+
+### Daily variables requested
 
 | Variable | Unit returned | Used for |
 | --- | --- | --- |
@@ -86,21 +102,15 @@ Parallel arrays. `hourly.time[i]` aligns index-for-index with every other
   "hourly_units": {
     "time": "iso8601",
     "wind_speed_10m": "kn",
-    "wind_gusts_10m": "kn",
     "precipitation": "mm",
-    "precipitation_probability": "%",
     "visibility": "m",
-    "weather_code": "wmo code",
     "is_day": ""
   },
   "hourly": {
     "time": ["2026-05-23T00:00", "2026-05-23T01:00", ...],   // 240 entries for 10 days
     "wind_speed_10m": [ ... ],
-    "wind_gusts_10m": [ ... ],
     "precipitation": [ ... ],
-    "precipitation_probability": [ ... ],
     "visibility": [ ... ],
-    "weather_code": [ ... ],
     "is_day": [ ... ]
   },
   "daily_units": { "sunrise": "iso8601", "sunset": "iso8601", "daylight_duration": "s" },
@@ -117,14 +127,15 @@ Parallel arrays. `hourly.time[i]` aligns index-for-index with every other
 
 ## 2. Marine Forecast API
 
-Sea state — wave height, wind waves, swell.
+Sea state — `wave_height` is the go/no-go input; wind waves, swell, period, and direction
+are available but not requested (see below).
 
 **Base URL:** `https://marine-api.open-meteo.com/v1/marine`
 
 **Example request** (copy-paste runnable):
 
 ```
-https://marine-api.open-meteo.com/v1/marine?latitude=30.3674&longitude=-89.0928&hourly=wave_height,wind_wave_height,swell_wave_height,wave_period,wave_direction&length_unit=imperial&timezone=America/Chicago&forecast_days=10
+https://marine-api.open-meteo.com/v1/marine?latitude=30.3674&longitude=-89.0928&hourly=wave_height&length_unit=imperial&timezone=America/Chicago&forecast_days=10
 ```
 
 **Docs:** https://open-meteo.com/en/docs/marine-weather-api
@@ -139,11 +150,24 @@ https://marine-api.open-meteo.com/v1/marine?latitude=30.3674&longitude=-89.0928&
 | `timezone` | `America/Chicago` | local times, aligns with Forecast API |
 | `forecast_days` | `10` | 10-day look-ahead |
 
-### Hourly variables pulled
+### Hourly variables requested
+
+Just the one the wave go/no-go needs (`MARINE_HOURLY` in `openMeteoConstants.ts`):
 
 | Variable | Default unit | With `length_unit=imperial` | Used for |
 | --- | --- | --- | --- |
 | `wave_height` | `m` | `ft` | wave go/no-go (primary) |
+
+> `length_unit=imperial` converts the length-type `wave_height` from meters to feet —
+> matching Tara's ft thresholds.
+
+### Other available variables (not requested)
+
+The Marine API also offers these; not requested today, so absent from the example URL
+and response below:
+
+| Variable | Default unit | With `length_unit=imperial` | Could be used for |
+| --- | --- | --- | --- |
 | `wind_wave_height` | `m` | `ft` | locally generated chop (context) |
 | `swell_wave_height` | `m` | `ft` | swell component (context) |
 | `wave_period` | `s` | `s` | wave period (context) |
@@ -164,19 +188,11 @@ Same parallel-array shape as the Forecast API.
   "timezone": "America/Chicago",
   "hourly_units": {
     "time": "iso8601",
-    "wave_height": "ft",           // "m" if length_unit omitted
-    "wind_wave_height": "ft",
-    "swell_wave_height": "ft",
-    "wave_period": "s",
-    "wave_direction": "°"
+    "wave_height": "ft"            // "m" if length_unit omitted
   },
   "hourly": {
     "time": ["2026-05-23T00:00", ...],   // same hourly cadence as Forecast API
-    "wave_height": [ ... ],
-    "wind_wave_height": [ ... ],
-    "swell_wave_height": [ ... ],
-    "wave_period": [ ... ],
-    "wave_direction": [ ... ]
+    "wave_height": [ ... ]
   }
 }
 ```

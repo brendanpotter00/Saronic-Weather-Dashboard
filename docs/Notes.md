@@ -12,6 +12,7 @@ Clarifying Questions:
 8. Do you like having contextual knowledge of other weather factors? Like temp? - For the 10 sec no-go decision, no. I want a simple quick dashboard. Later maybe temp for audience comfort, but out of scope right now.
 9. When there is a block of time within bounds, but the rest of the day is outside of the bounds, how should I handle it? - Tara only cares if there is a valid time window, then she can dive into the details of which contigious hours are valid
 10. What is the visibility threshold? - 6 miles or more is go, 3 to 6 is caution, and less than 3 is a no go 
+11. Do you want to use this dashboard across devices? - Right now, I am only thinking about using it on my work laptop.
 
 Key Insights: 
 1. We should exclude night forecast. Only daylight hours with 6 hours being the demo time window interval

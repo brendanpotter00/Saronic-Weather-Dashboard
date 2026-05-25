@@ -51,12 +51,15 @@ the UI is status — that's what the eye should catch.
 ```ts
 STATUS_TO_PALETTE = { go: 'success', caution: 'warning', 'no-go': 'error' }
 STATUS_LABEL      = { go: 'GO', caution: 'CAUTION', 'no-go': 'NO-GO' }
+statusMainColor(status)  // → `${STATUS_TO_PALETTE[status]}.main`, e.g. 'success.main'
 ```
 
 Usage patterns:
-- MUI components that take `color`: `<Chip color={STATUS_TO_PALETTE[status]} />` (see `StatusBadge`).
+- MUI components that take a `color` prop: `color={STATUS_TO_PALETTE[status]}` — the status
+  values *are* MUI palette intents, so the component gets the right colour for free.
 - A raw surface via `sx`: `sx={{ bgcolor: \`${STATUS_TO_PALETTE[status]}.main\` }}` (see `HourLine`).
-- Tinting a value, neutral when GO: `status === Status.Go ? 'text.primary' : \`${STATUS_TO_PALETTE[status]}.main\`` (see `FactorCell`).
+- Tinting a value, neutral when GO: `status === Status.Go ? 'text.primary' : statusMainColor(status)`
+  (see `FactorCell`) — `statusMainColor` centralizes the `.main` idiom so call sites don't restate it.
 
 ## Typography
 
