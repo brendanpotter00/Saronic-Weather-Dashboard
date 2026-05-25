@@ -11,7 +11,7 @@ describe('statusColor', () => {
     expect(STATUS_TO_PALETTE[Status.NoGo]).toBe('error');
   });
 
-  it('labels each status with the glanceable word Tara reads', () => {
+  it('labels each status with the glanceable word the operator reads', () => {
     expect(STATUS_LABEL[Status.Go]).toBe('GO');
     expect(STATUS_LABEL[Status.Caution]).toBe('CAUTION');
     expect(STATUS_LABEL[Status.NoGo]).toBe('NO-GO');

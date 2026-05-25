@@ -1,8 +1,4 @@
-// The top context band: the site-named title (data-driven off DEFAULT_SITE, so it reads as
-// "<place> Weather Dashboard" and updates for free when multi-city lands) on the left, and the
-// data Source (Attribution) tucked top-right so Tara can see provenance at a glance. The window
-// and demo-length controls live just below in DashboardConfigPanel; the status key rides the
-// "10-Day Forecast" heading row.
+// The top context band: the site-named title on the left, the data Source (Attribution) top-right.
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -30,9 +26,9 @@ export function DashboardHeader({ site, marineSite, marineAvailable }: Dashboard
       }}
     >
       <Typography variant="h1" component="h1">
-        {DEFAULT_SITE.label} Weather Dashboard
+        {DEFAULT_SITE.rangeName} — {DEFAULT_SITE.label} Weather Dashboard
       </Typography>
-      {/* Right-aligned on desktop; stacks back to the left when the header wraps on a phone. */}
+      {/* Right-aligned on desktop; left when the header wraps on a phone. */}
       <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
         <Attribution site={site} marineSite={marineSite} marineAvailable={marineAvailable} />
       </Box>

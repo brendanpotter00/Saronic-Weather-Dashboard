@@ -1,11 +1,7 @@
-// One daylight hour in the detail table: a status bar, the clock hour, and the four factor
-// readings. The row's grid template is shared with the header (HOUR_GRID) so columns line up.
-//
-// It's also the pin-selection surface: hovering/focusing a row previews a demo window centered on
-// it, and clicking/tapping commits to the confirm dialog. When the row sits inside the previewed
-// block it tints by the window's rolled-up status (the only saturated fill in the table) and draws
-// the bracket on the first/last rows. The math lives in the scoring layer; this row only reports
-// which hour it is (onHover/onSelect by clockHour) and renders the flags it's handed.
+// One daylight hour in the detail table: a status bar, the clock hour, and the four factor readings
+// (grid template shared with the header via HOUR_GRID). It's also the pin-selection surface: hover
+// previews a window centered on the row, click commits. The math lives in the scoring layer; this
+// row reports which hour it is and renders the flags it's handed.
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -16,7 +12,7 @@ import { STATUS_TO_PALETTE, type StatusPaletteKey } from '../../theme/statusColo
 import { FactorCell } from './FactorCell';
 import { formatHourLabel } from '../format';
 
-// status bar · time · wind · wave · rain · vis — imported by DayDetail for the aligned header.
+// status bar · time · wind · wave · rain · vis — shared by DayDetail's header for alignment.
 export const HOUR_GRID = '6px 56px repeat(4, 1fr)';
 
 const SELECTION_TINT_ALPHA = 0.14; // status tint behind a previewed window — the table's only fill
@@ -51,7 +47,7 @@ const HourRowRoot = styled(Box, {
     borderRight: '2px solid transparent',
     cursor: 'pointer',
     transition: theme.transitions.create('background-color'),
-    // A selected row stays crisp even when out-of-window — Tara chose these hours explicitly.
+    // A selected row stays crisp even when out-of-window — the operator chose these hours.
     opacity: inSelection || isInWindow ? 1 : 0.45,
     '&:focus-visible': {
       outline: `2px solid ${theme.palette.primary.main}`,
@@ -65,7 +61,6 @@ const HourRowRoot = styled(Box, {
   }
 
   // Inside the block: tint by the window's status; bracket only the first/last edges.
-  // Drop the grey divider inside the block — only the outer edges get the coloured bracket.
   return {
     ...base,
     backgroundColor: alpha(bracketColor, SELECTION_TINT_ALPHA),

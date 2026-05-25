@@ -1,9 +1,7 @@
-// One pinned demo window, rendered as a card: status strip + word, day, range, and the four
-// worst-in-window readings, plus a top-corner ✕ to unpin. It is pure presentation — the section
-// renders one of these per pin (in pin order) and re-derives the score from the live forecast on
-// every render (scoreNamedWindow), so the status firms up here with no card-level logic. Renders
-// nothing when that score is null (the window's day has rolled off the 10-day horizon), so a stale
-// pin simply drops out without erroring.
+// One pinned demo window as a card: status strip + word, day, range, and the four readings, plus a
+// ✕ to unpin. Pure presentation — the section re-derives the score from the live forecast each
+// render, so it firms up with no card-level logic. Renders nothing when the score is null (its day
+// rolled off the horizon).
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -22,10 +20,8 @@ import { StatusStrip } from './StatusStrip';
 import { StatusWord } from './StatusWord';
 import { IncompleteWindowAlert } from './IncompleteWindowAlert';
 
-// Unpinning is a reversible view action, so the ✕ rests muted grey and only warms toward the
-// no-go red on hover/focus — a clear "remove" cue without a shouting-red resting state. The
-// negative margins pull its padding into the corner so the ✕ optically aligns to the card edge
-// and the eyebrow line. Tokens only, no raw hex.
+// The ✕ rests muted grey and warms to red on hover/focus — a "remove" cue without a shouting-red
+// resting state. Negative margins pull it into the corner to align with the card edge.
 const UnpinButton = styled(IconButton)(({ theme }) => ({
   marginTop: theme.spacing(-0.5),
   marginRight: theme.spacing(-0.5),
@@ -57,9 +53,8 @@ export function PinnedWindowSlot({ date, score, lengthHours, onUnpin }: PinnedWi
         <StatusStrip status={score.status} />
         <CardContent>
           <Stack spacing={2}>
-            {/* Header: eyebrow + the corner unpin control on one line, then day/range + status
-                word on the next — so the ✕ owns the top-right corner without colliding with the
-                large status word, which now sits on the day line. */}
+            {/* Eyebrow + corner ✕ on one line, then day/range + status word below — so the ✕
+                doesn't collide with the large status word. */}
             <Box>
               <Box
                 sx={{

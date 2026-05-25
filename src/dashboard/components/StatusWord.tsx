@@ -1,8 +1,6 @@
-// The big bold status label — the one-word answer (GO / CAUTION / NO-GO) the day detail, the
-// pinned card, and the pin dialog all lead with. This component owns the invariant part: the
-// heavy weight, tight line-height, the status colour, and the word itself (from STATUS_LABEL), so
-// those can never disagree across the three places. The DISPLAY SIZE is the caller's layout call
-// — each surface sizes it for its own context — so font size (and any alignment) comes in via sx.
+// The big bold status label (GO / CAUTION / NO-GO) the day detail, pinned card, and pin dialog all
+// lead with. Owns the invariant part (weight, colour, the word) so they can't disagree; the display
+// SIZE is the caller's call, passed via sx.
 
 import Box from '@mui/material/Box';
 import type { SxProps, Theme } from '@mui/material/styles';

@@ -1,7 +1,5 @@
-// The severity-tier machinery: how a single reading becomes a tier, how tiers map to/from the
-// public Status, and how a set of tiers combines (worst wins). This changes when the BANDING
-// logic changes — separate from the threshold numbers (`weatherThresholds.ts`) and the public
-// vocabulary (`status.ts`).
+// The severity-tier machinery: how a reading becomes a tier, how tiers map to/from Status, and how
+// a set of tiers combines (worst wins).
 
 import { Status } from './status';
 import {
@@ -13,8 +11,7 @@ import {
   VISIBILITY_GO_MILES,
 } from './weatherThresholds';
 
-// Internal severity scale: worst-factor-wins is a max over these tiers. Kept numeric (not the
-// string Status) so ordering is a plain `>` comparison.
+// Numeric severity scale (not the string Status) so worst-factor-wins is a plain `>` comparison.
 export const TIER_GO = 0;
 export const TIER_CAUTION = 1;
 export const TIER_NOGO = 2;
@@ -31,7 +28,7 @@ export const STATUS_TO_TIER: Record<Status, Tier> = {
   [Status.NoGo]: TIER_NOGO,
 };
 
-// ---- Per-factor tiers (null = no reading = fail-safe no-go) ----
+// Per-factor tiers (null = no reading = fail-safe no-go).
 export function windTier(windSpeedKn: number | null): Tier {
   if (windSpeedKn === null) return TIER_NOGO;
   if (windSpeedKn > WIND_NOGO_KN) return TIER_NOGO;
@@ -53,15 +50,14 @@ export function precipitationTier(precipitationIn: number | null): Tier {
 
 export function visibilityTier(visibilityMiles: number | null): Tier {
   if (visibilityMiles === null) return TIER_NOGO;
-  // Inverted vs wind/wave: the low extreme is the danger, so the strict comparison sits at
-  // the floor and the upper boundary is inclusive of the go ideal.
+  // Inverted vs wind/wave: the low extreme is the danger (strict floor, inclusive go ideal).
   if (visibilityMiles < VISIBILITY_NOGO_MILES) return TIER_NOGO;
   if (visibilityMiles < VISIBILITY_GO_MILES) return TIER_CAUTION;
   return TIER_GO;
 }
 
-// Worst-factor-wins: the highest (worst) tier in the set. reduce (not Math.max) keeps the
-// result typed as Tier and avoids spread on a possibly-empty array.
+// Worst-factor-wins: the highest tier. reduce (not Math.max) keeps the Tier type and avoids spread
+// on a possibly-empty array.
 export function worstTier(tiers: Tier[]): Tier {
   return tiers.reduce<Tier>((worst, tier) => (tier > worst ? tier : worst), TIER_GO);
 }

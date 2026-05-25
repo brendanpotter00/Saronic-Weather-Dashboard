@@ -1,14 +1,9 @@
-// DEV-only error-state harness. Forces each failure/edge state from the URL (?simulate=...) so
-// every error / empty / degraded UI state can be exercised and screenshotted without touching
-// code. Gated behind import.meta.env.DEV, so it is inert (tree-shaken dead code) in a production
-// build and can never affect what Tara sees. Kept intentionally as a manual QA affordance — the
-// automated tests mock the query directly (see forecastApi.test.ts / App.test.tsx) instead.
+// DEV-only error-state harness. Forces a failure/edge state from the URL (?simulate=...) so every
+// error / empty / degraded UI state can be exercised without touching code. Gated on
+// import.meta.env.DEV, so it tree-shakes out of a production build.
 //
-// States: ?simulate=network|offline | 429 | server|forecast-error | malformed | marine-down |
-//         empty | throw   (anything else → the real live forecast)
-//
-// Wired in: forecastApi.ts queryFn (simulatedForecastResult + simulateMarineDown) and
-// Dashboard.tsx (maybeThrowForSimulation).
+// States: network|offline | 429 | server|forecast-error | malformed | marine-down | empty | throw
+//         (anything else → the real live forecast)
 
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { CombinedForecast } from '../model';
@@ -31,8 +26,8 @@ const EMPTY_FORECAST: CombinedForecast = {
   marineAvailable: true,
 };
 
-// Canned queryFn result for the active ?simulate= value, or null to run the real fetch.
-// `marine-down` returns null here (the forecast fetch still runs for real) — see simulateMarineDown.
+// Canned queryFn result for the active ?simulate= value, or null to run the real fetch (including
+// `marine-down`, handled separately by simulateMarineDown).
 export function simulatedForecastResult(): SimulatedResult | null {
   switch (simulateParam()) {
     case 'network':
@@ -52,8 +47,7 @@ export function simulatedForecastResult(): SimulatedResult | null {
   }
 }
 
-// True for ?simulate=marine-down: the forecast fetch runs for real but marine is forced
-// unavailable, exercising the graceful-degradation warning + all-no-go waves.
+// ?simulate=marine-down: forecast runs for real but marine is forced unavailable.
 export function simulateMarineDown(): boolean {
   return simulateParam() === 'marine-down';
 }

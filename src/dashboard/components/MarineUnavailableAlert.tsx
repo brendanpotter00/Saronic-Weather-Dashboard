@@ -1,6 +1,5 @@
-// The fail-safe banner shown when the marine (wave) feed is down: without wave heights a window
-// can't be cleared, so every hour is treated as no-go until the data returns. Its own component so
-// the domain wording has a single owner (mirrors IncompleteWindowAlert) rather than living inline.
+// The fail-safe banner when the marine (wave) feed is down: without wave heights every hour is
+// treated as no-go until the data returns.
 
 import Alert from '@mui/material/Alert';
 

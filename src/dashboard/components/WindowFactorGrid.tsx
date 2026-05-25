@@ -1,7 +1,5 @@
-// The four worst-in-window readings as labelled, status-tinted cells — shared by the pin confirm
-// dialog and the pinned card so they can't drift. Like FactorCell it stays purely presentational:
-// it renders the ScoredFactor the scoring layer already shaped (scoreNamedWindow), tinting a
-// caution/no-go value and leaving a clear one in neutral ink.
+// The four worst-in-window readings as labelled, status-tinted cells — shared by the pin dialog and
+// the pinned card so they can't drift. Tints caution/no-go, leaves a clear value in neutral ink.
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';

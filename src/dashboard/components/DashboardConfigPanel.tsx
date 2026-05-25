@@ -1,12 +1,6 @@
-// The dashboard-wide config bar — the top control surface. Two knobs Tara sets once and glances
-// at: the AVAILABLE WINDOW (the clock-hour band a demo may run in, defaulting to the daylight the
-// forecast covers) and the DEMO LENGTH. It sits above the horizon so the page reads top-down:
-// "here's the window and the demo length" → then scan the 10 days against them.
-//
-// Pure presentation: it renders the effective values the scoring layer echoed and reports a
-// change up. It does no clock math — the pickers clamp to `daylightBounds` (so the window can
-// never run past sunrise/sunset), the precise daylight times come pre-computed, and the
-// candidate count is handed in.
+// The dashboard-wide config bar. Two knobs: the AVAILABLE WINDOW (clock-hour band a demo may run in)
+// and the DEMO LENGTH. Pure presentation — it renders the effective values scoring echoed and
+// reports changes up; the pickers clamp to `daylightBounds` so the window can't run past daylight.
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -44,8 +38,7 @@ export function DashboardConfigPanel({
   onChange,
 }: DashboardConfigPanelProps) {
   const { startHour, endHour } = availableWindow;
-  // Start can't reach the end (need ≥1 hour); end can't reach the start. Both stay inside the
-  // daylight envelope, so the window never extends past sunrise/sunset.
+  // Start can't reach end (need ≥1 hour) and both stay inside the daylight bounds.
   const startOptions = range(daylightBounds.startHour, endHour - 1);
   const endOptions = range(startHour + 1, daylightBounds.endHour);
   const demoOptions = range(DEMO_MIN_HOURS, DEMO_MAX_HOURS);
@@ -59,8 +52,7 @@ export function DashboardConfigPanel({
       ? `${formatClockTime(daylightEnvelope.sunriseTime)} – ${formatClockTime(daylightEnvelope.sunsetTime)}`
       : MISSING_DISPLAY;
 
-  // The candidate count answers BOTH knobs (window + demo length), so it reads as a result of the
-  // whole bar rather than a note under the window picker. Full sentence kept for screen readers.
+  // Full sentence kept for screen readers (the visible chip is just "N/M").
   const countSentence = `${candidateCount} of ${totalDays} days have a valid window with these settings`;
 
   return (
@@ -134,7 +126,7 @@ export function DashboardConfigPanel({
             </FormControl>
           </Box>
 
-          {/* Live result of both knobs — pushed to the row end on desktop, full-width on phone. */}
+          {/* Live result of both knobs. */}
           <Box sx={{ ml: { md: 'auto' }, alignSelf: { md: 'center' }, width: { xs: '100%', md: 'auto' } }}>
             <Box
               role="status"

@@ -1,29 +1,21 @@
-// The collection of demo windows Tara has pinned to the top of the dashboard, plus the pure
-// operations that add/remove one. Kept out of Dashboard.tsx so the page stays a dumb owner of the
-// array and this list logic is unit-testable on its own (mirrors normalize.ts / combineForecasts.ts
-// in the data layer).
-//
-// A pinned window's IDENTITY is its content: two pins with the same day, start hour, and frozen
-// length are the same window. That single fact drives everything here — it's the dedupe rule, the
-// React key, and the unpin target — so no generated IDs or extra state are needed.
+// The operator's pinned demo windows, plus the pure add/remove operations. A pinned window's
+// IDENTITY is its content: same day + start hour + frozen length = the same window. That drives
+// the dedupe rule, the React key, and the unpin target — so no generated IDs are needed.
 
-// The coordinates of a pick from the hourly table — the day and the block's start clock-hour.
-// PinnedWindow extends it with the frozen demo length.
+// A pick from the hourly table: the day and the block's start clock-hour.
 export interface WindowSelection {
   date: string;
   startHour: number;
 }
 
-// A pinned window is its own independent, scheduled window: it FREEZES the demo length it was
-// pinned at, so later changes to the dashboard-wide demo length don't reshape it. It still
-// re-scores against the latest forecast each refetch — only the length is fixed.
+// A pinned window FREEZES the demo length it was pinned at, so later changes to the dashboard-wide
+// demo length don't reshape it. It still re-scores against each refetch — only the length is fixed.
 export interface PinnedWindow extends WindowSelection {
   lengthHours: number;
 }
 
-// Content identity as a string: stable key for React lists and the equality test for dedupe/remove.
-// `|` separates the parts because `date` ("2026-05-26") already contains the only other plausible
-// separator, `-`.
+// Content identity as a string (React key + dedupe/remove equality). `|` separator because `date`
+// already contains `-`.
 export function pinnedWindowKey(window: PinnedWindow): string {
   return `${window.date}|${window.startHour}|${window.lengthHours}`;
 }
@@ -33,9 +25,8 @@ export function removePinnedWindow(list: PinnedWindow[], target: PinnedWindow): 
   return list.filter((window) => pinnedWindowKey(window) !== pinnedWindowKey(target));
 }
 
-// Append `next` to the end (pin order), unless an identical window is already pinned — re-pinning
-// the same day/start/length is a no-op. Must return a NEW array on change (React state is
-// immutable) and the SAME array reference when it's a no-op.
+// Append `next` in pin order, unless an identical window is already pinned (a no-op). Returns a NEW
+// array on change, the SAME reference on no-op (React immutability).
 export function addPinnedWindow(list: PinnedWindow[], next: PinnedWindow): PinnedWindow[] {
   const nextKey = pinnedWindowKey(next);
   if (list.some((window) => pinnedWindowKey(window) === nextKey)) return list;

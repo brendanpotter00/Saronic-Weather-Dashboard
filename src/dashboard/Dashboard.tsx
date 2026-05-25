@@ -1,8 +1,6 @@
-// The page. Owns the dashboard-wide view state — the window/demo config knobs and which day is
-// expanded — calls the data and pin-flow hooks, and composes the sections top-down: header (with
-// the source blurb) → the pinned windows → the config bar → the 10-day forecast (its status key
-// rides the heading). Loading/error/empty are handled here so the sections can assume a present,
-// non-empty ScoredForecast.
+// The page. Owns the dashboard-wide view state (config knobs + which day is expanded), calls the
+// data and pin-flow hooks, and composes the sections. Loading/error/empty are handled here so the
+// sections can assume a present, non-empty ScoredForecast.
 
 import { useEffect, useState } from 'react';
 import Container from '@mui/material/Container';
@@ -22,24 +20,19 @@ import { PinnedWindowsSection } from './sections/PinnedWindowsSection';
 import { ForecastSection } from './sections/ForecastSection';
 
 export function Dashboard() {
-  // DEV-only error-state harness: throws on ?simulate=throw. Gated on import.meta.env.DEV so it
-  // dead-code-eliminates in a production build (the simulate module never ships).
+  // DEV-only ?simulate=throw harness; gated so it dead-code-eliminates from production.
   if (import.meta.env.DEV) maybeThrowForSimulation();
-  // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
-  // 6-hour demo) and echoes them back, which the control then seeds from. Dashboard-wide, lifted
-  // out of any single day. Local view state with one owner (mirrors `selectedDate`, no Redux).
+  // null = "no explicit choice yet" → scoring uses the product defaults and echoes them back, which
+  // the control then seeds from.
   const [windowConfig, setWindowConfig] = useState<ScoringOptions | null>(null);
   const { scored, isLoading, isFetching, isError, errorKind, refetch } = useScoredForecast(windowConfig ?? undefined);
-  // null = "no explicit choice yet" → ForecastSection falls back to the first day (today). Keyed
-  // by the stable date string, not an index, so it survives a refetch that reorders/replaces the array.
+  // null = "no explicit choice yet" → ForecastSection falls back to the first day. Keyed by the
+  // stable date string (not an index) so it survives a refetch.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  // The pinned windows and the single pending pin, with their add/confirm/cancel/unpin transitions.
   const pins = usePinnedWindows();
 
-  // A valid 200 that scores to zero days means the daylight filter or the day-join dropped
-  // everything — almost certainly an upstream/scoring bug, not normal operation. The UI shows a
-  // calm empty state below (with Retry); log it so the anomaly isn't invisible. Keyed so it warns
-  // once per such result, not on every render.
+  // Zero days from a valid 200 means the daylight filter or day-join dropped everything — likely a
+  // bug, not normal. Log it (the UI still shows a calm empty state below).
   const hasNoDays = scored !== undefined && scored.days.length === 0;
   useEffect(() => {
     if (hasNoDays) {
@@ -47,8 +40,7 @@ export function Dashboard() {
     }
   }, [hasNoDays]);
 
-  // `isFetching` (not just first-load `isLoading`) so clicking Retry from the error state below
-  // shows the skeleton again instead of silently re-flashing the same error.
+  // `isFetching` (not just `isLoading`) so Retry shows the skeleton again, not the same error.
   if (isLoading || isFetching) {
     return (
       <Container sx={{ py: { xs: 2, md: 4 } }}>

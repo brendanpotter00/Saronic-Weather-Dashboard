@@ -1,10 +1,6 @@
-// Last-resort guard: if any render below throws — a bad assumption in the view, NOT a fetch
-// failure (those are handled in Dashboard with tailored copy) — show a styled fallback instead
-// of React unmounting the tree to a blank white page. A render crash won't be cured by a
-// refetch, so the recovery action is a full reload. Mounted in App.tsx, inside the ThemeProvider
-// that main.tsx wraps App in, so MUI styling resolves. It is a class component because only the class lifecycles
-// (getDerivedStateFromError / componentDidCatch) can catch render errors — there is no hook
-// equivalent.
+// Last-resort guard for a render crash (fetch failures are handled in Dashboard): shows a styled
+// fallback instead of a blank page. Recovery is a full reload, since a refetch won't cure a render
+// crash. A class component because only its lifecycles can catch render errors — no hook equivalent.
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import Container from '@mui/material/Container';
@@ -28,7 +24,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Surface it for debugging; a production app would forward this to an error tracker.
     console.error('Dashboard crashed:', error, info.componentStack);
   }
 
@@ -46,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             <AlertTitle>Something went wrong</AlertTitle>
             The dashboard hit an unexpected error and couldn't render. Reload to try again.
-            {/* The raw message helps while developing; never shown in a production build. */}
+            {/* DEV-only: the raw message helps while developing. */}
             {import.meta.env.DEV && (
               <pre style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>{this.state.error.message}</pre>
             )}

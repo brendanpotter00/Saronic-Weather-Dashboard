@@ -1,24 +1,19 @@
-// Reduce a raw reading to the resolution we BOTH judge it at and show it at — the fix for a
-// whole class of bug where the colour and the number disagreed. The dashboard used to compute a
-// factor's tier from the full-precision value but round the value independently for display, so
-// at a threshold boundary the two could contradict: a 9.88 mi visibility scored CAUTION (9.88 <
-// 10) yet `Math.round` painted the label "10 mi" — the same "10 mi" that a genuine 10.2 reading
-// showed in green. Quantizing ONCE here, and having scoring tier + display stringify that single
-// number, makes the contradiction impossible: one value, one classification, one label.
+// Reduce a raw reading to the resolution we BOTH judge it at and show it at — the fix for a class
+// of bug where the colour and the number disagreed: a 9.88 mi visibility scored CAUTION (9.88 < 10)
+// yet rounded to "10 mi", the same label a genuine 10.2 reading showed in green. Quantizing ONCE
+// here, then tiering AND stringifying that single number, makes the contradiction impossible.
 //
-// Direction is per factor and deliberately CONSERVATIVE — round toward the danger so the tool
-// never reads safer than reality (a go/no-go safety call should err pessimistic, not optimistic):
-//   - wind / wave  : higher is worse  -> round UP   (never understate a hazard)
-//   - visibility   : lower is worse   -> round DOWN (never overstate how far you can see)
-//   - precipitation: any rain is a no-go and its display already partitions cleanly ("0 in" =>
-//     go vs any positive => no-go), so it's already contradiction-proof — left unrounded so the
-//     bespoke "<0.01 in" floor in format.ts is preserved. It's the model the others copy.
+// Direction is per factor and deliberately CONSERVATIVE — round toward the danger so the tool never
+// reads safer than reality:
+//   - wind / wave  : higher is worse  -> round UP
+//   - visibility   : lower is worse   -> round DOWN
+//   - precipitation: any rain is a no-go and "0 in" vs any positive already partitions cleanly, so
+//     it's left unrounded (preserving the "<0.01 in" floor in format.ts).
 
 import { Factor } from './status';
 
-// Display resolution per factor (decimal places). The single source for BOTH the directional
-// rounding below and `toFixed` in format.ts, so the number scoring classifies is exactly the
-// number rendered — they can't drift to different precisions.
+// Display resolution per factor. The single source for BOTH the directional rounding here and
+// `toFixed` in format.ts, so scoring and display can't drift to different precisions.
 export const FACTOR_DECIMALS: Record<Factor, number> = {
   [Factor.Wind]: 1,
   [Factor.Wave]: 1,
@@ -26,12 +21,9 @@ export const FACTOR_DECIMALS: Record<Factor, number> = {
   [Factor.Visibility]: 1,
 };
 
-// Round to `decimals` places in one direction, stripping binary-float noise first. Multiplying
-// by the scale can leave a value a hair off the integer it should land on — classically
-// `0.29 * 100` is `28.999999999999996`, where a naive `Math.floor` would snap to 0.28 instead of
-// the intended 0.29. `toFixed(6)` collapses that ~1e-15 noise before the directional round picks
-// the digit, keeping the helper correct at any precision. (The 1-decimal factors here don't trip
-// it in practice; it's 2-decimal precision like the precip example that bites — hence the guard.)
+// Round to `decimals` places in one direction, stripping binary-float noise first: `0.29 * 100` is
+// `28.999999999999996`, which a naive `Math.floor` would snap to 0.28. `toFixed(6)` collapses that
+// ~1e-15 noise before the directional round.
 function roundToDecimals(value: number, decimals: number, direction: 'up' | 'down'): number {
   const scale = 10 ** decimals;
   const scaled = Number((value * scale).toFixed(6));
@@ -39,12 +31,10 @@ function roundToDecimals(value: number, decimals: number, direction: 'up' | 'dow
   return rounded / scale;
 }
 
-// The one number Tara sees and the tier is computed from. A missing (`null`) OR non-finite
-// (`NaN`/`Infinity`) reading collapses to `null` so it stays the fail-safe no-go it was upstream
-// (see normalize.ts). Guarding non-finite here — not just relying on the caller — matters because
-// a `NaN` slipping into the tier comparisons scores a spurious GO (`NaN > limit` is `false`), i.e.
-// the tool reading SAFER than reality. The data layer already maps non-finite to null; this keeps
-// the invariant true at the function itself, the one caller scoreHour depends on.
+// The one number the operator sees and the tier is computed from. A null OR non-finite reading
+// collapses to null so it stays the fail-safe no-go it was upstream. Guarding non-finite here
+// matters: a NaN slipping into the tier comparisons scores a spurious GO (`NaN > limit` is false),
+// the tool reading SAFER than reality.
 export function quantizeReading(factor: Factor, value: number | null): number | null {
   if (value === null || !Number.isFinite(value)) return null;
   switch (factor) {

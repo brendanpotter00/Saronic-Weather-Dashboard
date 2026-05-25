@@ -1,15 +1,10 @@
-// Presentational formatting — the ONE place the UI turns the data layer's real-number,
-// domain-unit values into display strings. This is deliberately NOT in the data/scoring
-// layers: those keep values as real numbers with the unit in the field name (the project's
-// "never bake units into a string" rule), so comparisons stay numeric. Turning 18 into
-// "18 kn", 0 into "none", or null into "—" is pure display vocabulary and lives here, used by
-// every cell so the formatting can't drift component to component.
+// Presentational formatting — the ONE place the UI turns the data layer's real-number, domain-unit
+// values into display strings, so formatting can't drift component to component.
 
 import { Factor } from '../scoring/status';
 import { FACTOR_DECIMALS } from '../scoring/quantize';
 
-// Shown when a reading is missing (null). A no-reading factor scored NO-GO upstream; here it's
-// just "we have no number to show".
+// Shown when a reading is missing (null) — "we have no number to show".
 export const MISSING_DISPLAY = '—';
 
 const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -23,23 +18,19 @@ export interface DayLabel {
   month: string; // "May"
 }
 
-// Parse the "YYYY-MM-DD" calendar key into its parts WITHOUT constructing a UTC instant:
-// `new Date("2026-05-24")` is parsed as UTC midnight and can roll back a day in a western
-// timezone. Building from local Y/M/D components keeps the weekday correct everywhere.
+// Parse the "YYYY-MM-DD" key WITHOUT a UTC instant: `new Date("2026-05-24")` is UTC midnight and
+// can roll back a day in a western timezone. Local Y/M/D components keep the weekday correct.
 export function formatDayLabel(dateKey: string): DayLabel {
   const [year, month, day] = dateKey.split('-').map(Number);
   const d = new Date(year, month - 1, day);
-  // A malformed key (Number(undefined) → NaN) makes an Invalid Date, whose getDay() is NaN and
-  // DOW[NaN] is undefined. Degrade to a neutral placeholder rather than render "undefined".
+  // A malformed key → Invalid Date → degrade to a neutral placeholder rather than render "undefined".
   if (Number.isNaN(d.getTime())) {
     return { dow: MISSING_DISPLAY, weekday: MISSING_DISPLAY, dayNum: 0, month: MISSING_DISPLAY };
   }
   return { dow: DOW[d.getDay()], weekday: WEEKDAY[d.getDay()], dayNum: day, month: MONTH[month - 1] };
 }
 
-// The clock hour is already baked into the offset-aware ISO string (e.g. "...T06:00:00-05:00"
-// is 06:00 site-local), so read it straight from the characters — no Date, no re-applying an
-// offset, no DST surprises.
+// Clock hour/minute read straight off the offset-aware ISO string — no Date, no DST surprises.
 function clockParts(iso: string): { hour: number; minute: number } {
   return { hour: Number(iso.slice(11, 13)), minute: Number(iso.slice(14, 16)) };
 }
@@ -50,8 +41,7 @@ function meridiem(hour: number): { h12: number; ap: 'AM' | 'PM' } {
   return { h12, ap };
 }
 
-// "6 AM", "7 PM" — compact, for the hourly rows. An empty ISO (an unevaluable window's blank
-// start/end time) degrades to the missing dash rather than fabricating "12 AM" from Number('').
+// "6 AM", "7 PM" — compact, for the hourly rows. Empty ISO → dash, not "12 AM" from Number('').
 export function formatHourLabel(iso: string): string {
   if (!iso) return MISSING_DISPLAY;
   const { hour } = clockParts(iso);
@@ -60,7 +50,7 @@ export function formatHourLabel(iso: string): string {
   return `${h12} ${ap}`;
 }
 
-// "6:13 AM" — precise, for the exact sunrise/sunset times in the window control's daylight line.
+// "6:13 AM" — precise, for the daylight line's sunrise/sunset times.
 export function formatClockTime(iso: string): string {
   if (!iso) return MISSING_DISPLAY;
   const { hour, minute } = clockParts(iso);
@@ -69,16 +59,14 @@ export function formatClockTime(iso: string): string {
   return `${h12}:${String(minute).padStart(2, '0')} ${ap}`;
 }
 
-// "6 AM", "8 PM" — a bare clock hour from an integer 0–23, for the available-window bounds and
-// its picker (no ISO string, no minutes).
+// "6 AM", "8 PM" — a bare clock hour from an integer 0–23, for the window bounds and picker.
 export function formatHourOfDay(hour: number): string {
   if (!Number.isFinite(hour)) return MISSING_DISPLAY; // a NaN bound → dash, never "NaN AM"
   const { h12, ap } = meridiem(hour);
   return `${h12} ${ap}`;
 }
 
-// Compact factor names for the pinned card / confirm dialog's four small readings. The hourly
-// table uses full words in its header ("Wind Speed"); these short forms fit a 64px cell.
+// Compact factor names for the small cells (the hourly table header uses full words).
 export const FACTOR_LABEL: Record<Factor, string> = {
   [Factor.Wind]: 'Wind',
   [Factor.Wave]: 'Wave',
@@ -86,28 +74,22 @@ export const FACTOR_LABEL: Record<Factor, string> = {
   [Factor.Visibility]: 'Vis',
 };
 
-// Visibility flattens out at the top of the API's range, so anything at/above this reads as a
-// ceiling ("15+") rather than a noisy exact mile count that implies false precision.
+// Visibility flattens out at the top of the API's range, so anything at/above this reads as "15+"
+// rather than implying false precision.
 const VISIBILITY_DISPLAY_CAP_MILES = 15;
 
-// Unit suffixes appended to factor values for display (the table header carries only the name).
+// Unit suffixes appended to factor values for display.
 const KNOTS = 'kn';
 const FEET = 'ft';
 const INCHES = 'in';
 const MILES = 'mi';
 
-// Turn one factor reading into its cell string, with the unit appended to the number (the table
-// header carries only the factor name now). This is a PURE STRINGIFIER: the value arrives already
-// quantized to its display resolution by the scoring layer (see quantize.ts), and the tier was
-// computed from that same number — so this must NOT round across a threshold, or the label could
-// once again contradict the colour. It only renders at the shared precision (FACTOR_DECIMALS) and
-// applies display vocabulary: a clean "0 in" for no rain and a "<0.01 in" floor so real-but-tiny
-// rain never reads as dry (the wrong signal for a no-go factor); visibility caps at the sensor
-// ceiling ("15+ mi") rather than implying false precision; a missing reading (null) is a unit-less
-// "—", distinct from a measured zero.
+// Stringify one factor reading, unit appended. PURE STRINGIFIER: the value is already quantized by
+// scoring (quantize.ts) and the tier computed from it, so this must NOT round across a threshold or
+// the label could contradict the colour. Display vocabulary: "0 in" for no rain, a "<0.01 in" floor
+// so tiny rain never reads as dry, a "15+ mi" visibility ceiling, and "—" for a missing reading.
 export function formatFactorValue(factor: Factor, value: number | null): string {
-  // null = no reading; a non-finite number (NaN/±Infinity) is bad data that must never render
-  // as "NaN kn". Both collapse to the missing marker so the cell stays honest.
+  // null or non-finite (bad data) both collapse to the missing marker — never "NaN kn".
   if (value === null || !Number.isFinite(value)) return MISSING_DISPLAY;
 
   switch (factor) {

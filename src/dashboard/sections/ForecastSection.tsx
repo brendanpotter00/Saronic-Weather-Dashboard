@@ -1,7 +1,6 @@
-// The 10-day forecast region: the marine-data warning (when waves are missing), the horizon strip
-// of day columns, and the drill-down detail for the selected day. It resolves which day is
-// expanded — the selected date, falling back to the first day (today) — so the strip highlight and
-// the detail can never disagree about which day is open.
+// The 10-day forecast region: the marine warning, the horizon strip, and the selected-day detail.
+// Resolves which day is expanded (selected date, falling back to the first) so the strip and detail
+// can't disagree.
 
 import type { ScoredDay } from '../../scoring/scoring';
 import { HorizonStrip } from '../components/HorizonStrip';
@@ -25,8 +24,7 @@ export function ForecastSection({
   onSelectDate,
   onRequestPin,
 }: ForecastSectionProps) {
-  // Keyed by the stable date string, not an index, so the selection survives a refetch that
-  // reorders/replaces the array; an unset choice falls back to the first day.
+  // Keyed by the stable date string (not an index) so selection survives a refetch; unset → first day.
   const selected = days.find((day) => day.date === selectedDate) ?? days[0];
 
   return (
