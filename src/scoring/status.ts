@@ -21,3 +21,8 @@ export const Factor = {
   Visibility: 'visibility',
 } as const;
 export type Factor = (typeof Factor)[keyof typeof Factor];
+
+// The canonical order the four factors are read and rendered in (wind, wave, rain, visibility).
+// Lives beside `Factor` so the scoring roll-up (scoreNamedWindow) and the display grid
+// (WindowFactorGrid) iterate one shared list and can't drift apart.
+export const FACTOR_ORDER: Factor[] = [Factor.Wind, Factor.Wave, Factor.Precipitation, Factor.Visibility];
