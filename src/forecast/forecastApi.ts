@@ -16,6 +16,7 @@ import {
 import type { ForecastResponse, MarineResponse } from './responseTypes';
 import type { CombinedForecast } from '../model';
 import { buildCombinedForecast } from './combineForecasts';
+import { simulatedForecastResult, simulateMarineDown } from './simulate'; // DEV-only error-state harness
 
 function forecastUrl(site: Site): string {
   const params = new URLSearchParams({
@@ -52,13 +53,17 @@ function marineUrl(site: Site): string {
 // `timezone` is included because buildCombinedForecast feeds it into Intl.DateTimeFormat
 // to resolve each hour's UTC offset: a missing/empty zone would throw a RangeError (or,
 // if merely absent, silently default to the browser zone -> wrong offsets on every hour)
-// instead of the clean CUSTOM_ERROR this guard exists to produce.
+// instead of the clean CUSTOM_ERROR this guard exists to produce. `latitude`/`longitude`
+// are checked too: buildCombinedForecast emits them as `site`, and a missing one would
+// silently surface as `site: { latitude: undefined }` in the footer rather than this error.
 function isForecastResponse(data: unknown): data is ForecastResponse {
   const d = data as ForecastResponse | null;
   return (
     !!d &&
     typeof d.timezone === 'string' &&
     d.timezone.length > 0 &&
+    typeof d.latitude === 'number' &&
+    typeof d.longitude === 'number' &&
     Array.isArray(d.hourly?.time) &&
     Array.isArray(d.hourly?.is_day) &&
     Array.isArray(d.hourly?.wind_speed_10m) &&
@@ -71,11 +76,17 @@ function isForecastResponse(data: unknown): data is ForecastResponse {
   );
 }
 
-// Marine only ever indexes hourly.time + hourly.wave_height, so those two arrays are
-// the complete set of fields the consumer touches.
+// buildCombinedForecast indexes hourly.time + hourly.wave_height and reads latitude/longitude
+// for `marineSite`, so those are the complete set of fields the consumer touches.
 function isMarineResponse(data: unknown): data is MarineResponse {
   const d = data as MarineResponse | null;
-  return !!d && Array.isArray(d.hourly?.time) && Array.isArray(d.hourly?.wave_height);
+  return (
+    !!d &&
+    typeof d.latitude === 'number' &&
+    typeof d.longitude === 'number' &&
+    Array.isArray(d.hourly?.time) &&
+    Array.isArray(d.hourly?.wave_height)
+  );
 }
 
 export const forecastApi = createApi({
@@ -95,6 +106,14 @@ export const forecastApi = createApi({
     getCombinedForecast: build.query<CombinedForecast, void>({
       keepUnusedDataFor: CACHE_TTL_SECONDS, // retain ~10 min after last subscriber unmounts
       async queryFn(_arg, _api, _extra, baseQuery) {
+        // DEV-only ?simulate= harness. Gating each call site on import.meta.env.DEV (a static
+        // `false` in a production build) lets the whole simulate module dead-code-eliminate, so the
+        // harness never ships to production — not merely no-op at runtime.
+        if (import.meta.env.DEV) {
+          const simulated = simulatedForecastResult();
+          if (simulated) return simulated;
+        }
+
         const site = DEFAULT_SITE;
 
         const [forecastRes, marineRes] = await Promise.all([
@@ -117,8 +136,9 @@ export const forecastApi = createApi({
 
         // Marine degrades gracefully: on a fetch error OR an unexpected body, fall
         // back to null waves so wind/precip/visibility still render.
+        const marineForcedDown = import.meta.env.DEV && simulateMarineDown();
         const marine =
-          marineRes.error || !isMarineResponse(marineRes.data)
+          marineForcedDown || marineRes.error || !isMarineResponse(marineRes.data)
             ? null
             : (marineRes.data as MarineResponse);
         const forecast = forecastRes.data as ForecastResponse;
@@ -130,7 +150,11 @@ export const forecastApi = createApi({
         // {data}|{error}, never throw (a throw rejects the query promise).
         try {
           return { data: buildCombinedForecast(forecast, marine) };
-        } catch {
+        } catch (err) {
+          // Reaching here means something genuinely unanticipated threw past the structural
+          // guard (e.g. a RangeError from an invalid-but-nonempty timezone) — exactly the case
+          // you'd want the stack for. Log it before collapsing to the clean badData error.
+          console.error('Failed to build forecast from response:', err);
           return {
             error: {
               status: 'CUSTOM_ERROR',
