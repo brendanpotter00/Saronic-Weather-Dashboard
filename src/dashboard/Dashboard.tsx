@@ -1,6 +1,7 @@
-// The page. Owns the only piece of view state — which day is expanded — and lays the dashboard
-// out top-down: context (header) → the future pinned window's reserved slot → the 10-day line →
-// the selected day's detail. Loading/error/empty are handled here so the children can assume a
+// The page. Owns the view state — the expanded day, the dashboard-wide window config, the pinned
+// windows, and the pending-pin dialog — and lays the dashboard out top-down: context (header) →
+// pinned windows → config panel → the 10-day line → the selected day's detail, with the pin
+// confirm dialog layered on top. Loading/error/empty are handled here so the children can assume a
 // present, non-empty ScoredForecast.
 
 import { useEffect, useState } from 'react';
