@@ -24,7 +24,6 @@ import {
 import { DashboardConfigPanel } from './components/DashboardConfigPanel';
 import { HorizonStrip } from './components/HorizonStrip';
 import { DayDetail } from './components/DayDetail';
-import { DashboardFooter } from './components/DashboardFooter';
 
 export function Dashboard() {
   // null = "no explicit choice yet" → scoring uses the product defaults (widest daylight window,
@@ -86,7 +85,11 @@ export function Dashboard() {
   return (
     <Container sx={{ py: { xs: 2, md: 4 } }}>
       <Stack spacing={{ xs: 2, md: 3 }}>
-        <DashboardHeader />
+        <DashboardHeader
+          site={scored.site}
+          marineSite={scored.marineSite}
+          marineAvailable={scored.marineAvailable}
+        />
         {pinnedWindows.map((window) => {
           const day = findDay(window.date);
           const score = day ? scoreNamedWindow(day, window.startHour, window.lengthHours) : null;
@@ -119,11 +122,6 @@ export function Dashboard() {
           day={selected}
           demoWindowHours={scored.demoWindowHours}
           onRequestPin={(date, startHour) => setDialogWindow({ date, startHour })}
-        />
-        <DashboardFooter
-          site={scored.site}
-          marineSite={scored.marineSite}
-          marineAvailable={scored.marineAvailable}
         />
       </Stack>
       {dialogWindow && dialogScore && (

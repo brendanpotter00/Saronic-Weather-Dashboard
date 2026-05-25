@@ -1,10 +1,10 @@
 // Says plainly WHERE the weather comes from and FOR WHERE — so Tara trusts the numbers. Lives
-// in the page footer. Surfaces the resolved grid cells the two Open-Meteo APIs actually answered
-// for: the marine model snaps to the nearest ocean cell, so its lat/lon differs from the forecast
-// cell. That's expected, not a bug, and showing it is more honest than hiding it.
+// top-right of the header as a compact two-row label/value grid: "Source" / "Gulfport, MS" label
+// the rows on the left, the provider and the resolved coordinates sit in the column to their
+// right. Surfaces both grid cells because the marine model snaps to the nearest ocean cell, so
+// its lat/lon differs from the forecast cell — expected, not a bug, and more honest shown.
 
 import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { DEFAULT_SITE } from '../../config/sites';
 import type { ScoredForecast } from '../../scoring/scoring';
@@ -21,22 +21,32 @@ interface AttributionProps {
 }
 
 export function Attribution({ site, marineSite, marineAvailable }: AttributionProps) {
+  const marine = marineAvailable && marineSite ? `Marine ${coords(marineSite)}` : 'Marine data unavailable';
   return (
-    <Box>
+    // inline-grid so the block shrinks to its content and rides the right edge of the header;
+    // labels in the left column, values in the right — two lines instead of four.
+    <Box
+      sx={{
+        display: 'inline-grid',
+        gridTemplateColumns: 'auto auto',
+        columnGap: 1.5,
+        rowGap: 0.25,
+        alignItems: 'baseline',
+        textAlign: 'left',
+      }}
+    >
       <Typography variant="overline" color="text.secondary" component="div">
         Source
       </Typography>
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         Open-Meteo · Forecast + Marine
       </Typography>
-      <Stack spacing={0} sx={{ mt: 0.5 }}>
-        <Typography variant="caption" color="text.secondary">
-          {DEFAULT_SITE.label} · forecast grid {coords(site)}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {marineAvailable && marineSite ? `marine grid ${coords(marineSite)}` : 'marine data unavailable'}
-        </Typography>
-      </Stack>
+      <Typography variant="caption" color="text.secondary">
+        {DEFAULT_SITE.label}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Forecast {coords(site)} · {marine}
+      </Typography>
     </Box>
   );
 }
